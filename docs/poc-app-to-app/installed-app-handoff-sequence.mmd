@@ -1,0 +1,28 @@
+sequenceDiagram
+  actor Patient
+  participant NHSApp as NHS App (native)
+  participant HealthStore as HealthStore patient service (RP1)
+  participant NHSLogin as NHS Login
+  participant MMH as my mhealth (RP2, installed)
+
+  Note over Patient,NHSLogin: Stage 1 — into HealthStore (hop A, NHS App's token)
+  Patient->>NHSApp: Open NHS App / login (NHS Login P9)
+  Patient->>NHSApp: Open HealthStore (webview)
+  NHSApp->>HealthStore: /api/sso?assertedLoginIdentity=JWT (NHS App mints off its id_token)
+  HealthStore->>NHSLogin: /authorize + asserted_login_identity (client nhs-dtx)
+  NHSLogin-->>HealthStore: code (no login form)
+  HealthStore->>NHSLogin: /token (private_key_jwt)
+  NHSLogin-->>HealthStore: id_token — HealthStore session, jti retained
+  Note over Patient,HealthStore: Patient is in our screens inside the NHS App
+
+  Note over Patient,MMH: Stage 2 — handoff to partner (hop B, HealthStore's token)
+  Patient->>HealthStore: "Open my mhealth" (/api/handoff?app=mycopd)
+  HealthStore->>HealthStore: Mint asserted_login_identity<br/>(iss=nhs-dtx, code=own id_token jti, RS512, 60s, one-time)
+  HealthStore-->>Patient: 302 https://dev.mymhealth.com/login?asserted_login_identity=JWT
+  Note over Patient,MMH: Universal link claimed by installed app —<br/>OS opens my mhealth app (web page is the fallback)
+  Patient->>MMH: Launch with asserted_login_identity
+  MMH->>NHSLogin: /authorize + asserted_login_identity (client mmh, via redirect Lambda + Cognito)
+  NHSLogin->>NHSLogin: Verify RP1 signature + registered nhs-dtx→mmh relationship + jti correlation
+  NHSLogin-->>MMH: code to registered redirect (Cognito idpresponse) — no login form
+  MMH->>MMH: Cognito exchanges code for tokens
+  MMH-->>Patient: Signed in as the same NHS user
