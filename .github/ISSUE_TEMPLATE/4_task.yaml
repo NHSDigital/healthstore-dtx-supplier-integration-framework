@@ -1,0 +1,49 @@
+# See:
+# - https://docs.github.com/en/communities/using-templates-to-encourage-useful-issues-and-pull-requests/configuring-issue-templates-for-your-repository
+# - https://docs.github.com/en/communities/using-templates-to-encourage-useful-issues-and-pull-requests/syntax-for-issue-forms
+# - https://docs.github.com/en/communities/using-templates-to-encourage-useful-issues-and-pull-requests/common-validation-errors-when-creating-issue-forms
+
+name: 📋 Task
+description: A defined piece of work between the parties
+type: Task
+body:
+  - type: textarea
+    attributes:
+      label: What this is
+      description: The work in a few sentences. What it delivers or proves, and why now.
+    validations:
+      required: true
+  - type: textarea
+    attributes:
+      label: Scope
+      description: What is in and what is explicitly out.
+      value: |
+        **In scope**
+        -
+
+        **Out of scope**
+        -
+    validations:
+      required: true
+  - type: textarea
+    attributes:
+      label: Approach (proposed)
+      description: How we propose to do it. Open to refinement — comments welcome.
+  - type: textarea
+    attributes:
+      label: Ownership
+      description: Who owns which part.
+      value: |
+        | Part | Owner |
+        |------|-------|
+        |      |       |
+  - type: textarea
+    attributes:
+      label: Acceptance
+      description: Observable outcomes that close this issue.
+    validations:
+      required: true
+  - type: textarea
+    attributes:
+      label: Dependencies & references
+      description: What this waits on; links to designs, PRs, prior art.
