@@ -58,7 +58,18 @@ them is internal.
 
 ### Registrations API
 
-NHS England API Management, application-restricted, signed JWT.
+Interim, until APIM onboarding completes. AWS Cognito.
+
+| Item | Detail |
+|---|---|
+| Register | Credentials issued by HealthStore |
+| Grant | OAuth 2.0 `client_credentials` |
+| Token endpoint | Cognito, URL issued with the credentials |
+| Client authentication | `client_secret_post` |
+| Token | Bearer, JWT |
+| Scopes | TBD |
+
+Target. NHS England API Management, application-restricted, signed JWT.
 `https://proxygen.prod.api.platform.nhs.uk/components/securitySchemes/app-level3`
 
 | Item | Detail |
@@ -66,11 +77,19 @@ NHS England API Management, application-restricted, signed JWT.
 | Register | NHS England developer portal |
 | Grant | OAuth 2.0 `client_credentials` |
 | Token endpoint | `/oauth2/token` |
-| Client authentication | JWT signed with the platform's private key |
+| Client authentication | RS512-signed JWT assertion, `client_assertion_type=urn:ietf:params:oauth:client-assertion-type:jwt-bearer` |
 | Token | Bearer, JWT |
 | Scopes | TBD |
 
-An interim arrangement before APIM is not yet defined.
+Moving from the interim to the target changes how a token is obtained and
+nothing else. The API calls, the bearer header, token caching against
+`expires_in`, refresh and `401` handling are the same throughout.
+
+At the token endpoint, `client_id` and `client_secret` are replaced by a
+`client_assertion`: a JWT carrying `iss` and `sub` set to the API key, `aud` set
+to the token endpoint, a per-request `jti`, and `exp` no more than five minutes
+ahead, signed RS512 with a private key whose public half is registered with NHS
+England.
 
 ## Errors
 
