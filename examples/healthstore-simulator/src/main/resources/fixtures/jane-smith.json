@@ -1,0 +1,64 @@
+{
+  "resourceType": "ServiceRequest",
+  "contained": [
+    {
+      "resourceType": "Patient",
+      "id": "patient",
+      "identifier": [
+        {
+          "system": "https://fhir.nhs.uk/Id/nhs-number",
+          "value": "9000000009",
+          "extension": [
+            {
+              "url": "https://fhir.hl7.org.uk/StructureDefinition/Extension-UKCore-NHSNumberVerificationStatus",
+              "valueCodeableConcept": {
+                "coding": [
+                  {
+                    "system": "https://fhir.hl7.org.uk/CodeSystem/UKCore-NHSNumberVerificationStatusEngland",
+                    "code": "01",
+                    "display": "Number present and verified"
+                  }
+                ]
+              }
+            }
+          ]
+        }
+      ],
+      "name": [{ "use": "official", "family": "Smith", "given": ["Jane"] }],
+      "telecom": [
+        { "system": "email", "value": "jane.smith@example.com", "use": "home" },
+        { "system": "phone", "value": "+447700900123", "use": "mobile" }
+      ],
+      "gender": "female",
+      "birthDate": "1980-01-15",
+      "address": [{ "country": "GB" }],
+      "generalPractitioner": [
+        {
+          "identifier": {
+            "system": "https://fhir.nhs.uk/Id/ods-organization-code",
+            "value": "A81001"
+          },
+          "display": "Example Medical Practice"
+        }
+      ]
+    }
+  ],
+  "identifier": [
+    {
+      "system": "https://fhir.healthstore.nhs.uk/Id/registration",
+      "value": "00000000-0000-4000-8000-000000000000"
+    }
+  ],
+  "status": "active",
+  "intent": "order",
+  "priority": "routine",
+  "subject": { "reference": "#patient" },
+  "authoredOn": "2026-08-01T09:00:00Z",
+  "requester": {
+    "identifier": {
+      "system": "https://fhir.nhs.uk/Id/ods-organization-code",
+      "value": "RX898"
+    },
+    "display": "Example NHS Trust"
+  }
+}
