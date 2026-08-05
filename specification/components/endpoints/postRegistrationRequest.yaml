@@ -90,6 +90,8 @@ post:
             lastModified: '2026-08-05T10:15:02Z'
     '400':
       $ref: '../responses/BadRequest.yaml'
+    '401':
+      $ref: '../responses/Unauthorized.yaml'
     '422':
       $ref: '../responses/UnprocessableRegistrationRequest.yaml'
     '429':

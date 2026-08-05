@@ -1,0 +1,24 @@
+description: |
+  No token, or a token that is invalid or expired.
+
+  | Error code | Description |
+  |---|---|
+  | ACCESS_DENIED | No token, or a token that is invalid or expired |
+headers:
+  X-Request-ID:
+    $ref: '../headers/response/XRequestID.yaml'
+  X-Correlation-ID:
+    $ref: '../headers/response/XCorrelationID.yaml'
+content:
+  application/fhir+json:
+    schema:
+      $ref: '../schemas/OperationOutcome.yaml'
+    example:
+      resourceType: OperationOutcome
+      issue:
+        - severity: error
+          code: login
+          details:
+            coding:
+              - code: ACCESS_DENIED
+          diagnostics: No token, or a token that is invalid or expired

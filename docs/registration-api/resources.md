@@ -48,9 +48,9 @@ Provided by the platform, used by HealthStore.
 |---|---|
 | Grant | OAuth 2.0 `client_credentials` |
 | Token endpoint | `/oauth/token`, unauthenticated |
-| Client authentication | `client_secret_basic` or `client_secret_post` |
+| Client authentication | `client_secret_post` |
 | Token | Bearer, JWT |
-| Scopes | TBD |
+| Scopes | None |
 | Credentials | Issued by the platform to HealthStore, rotated by the platform |
 
 HealthStore holds one credential set per platform. How it stores and resolves
