@@ -1,9 +1,9 @@
 description: |
-  The registration or cohort is not known.
+  The registration or cohort is not known, or is outside the caller's tenancy.
 
   | Error code | Description |
   |---|---|
-  | REFERENCE_NOT_FOUND | The registration or cohort is not known |
+  | REFERENCE_NOT_FOUND | The registration or cohort is not known, or is outside the caller's tenancy |
 headers:
   X-Request-ID:
     $ref: '../headers/response/XRequestID.yaml'

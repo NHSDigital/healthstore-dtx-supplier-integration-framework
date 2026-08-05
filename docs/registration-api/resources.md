@@ -64,7 +64,7 @@ Interim, until APIM onboarding completes. AWS Cognito.
 |---|---|
 | Register | Credentials issued by HealthStore |
 | Grant | OAuth 2.0 `client_credentials` |
-| Token endpoint | Cognito, URL issued with the credentials |
+| Token endpoint | `/oauth2/token`, on the same host as the API |
 | Client authentication | `client_secret_post` |
 | Token | Bearer, JWT |
 | Scopes | TBD |
@@ -106,7 +106,7 @@ Every endpoint except `/oauth/token` returns an `OperationOutcome` on error.
 | A required query parameter is absent | 400 | `MISSING_PARAMETER` |
 | `code`, `focus` and `groupIdentifier` disagree | 422 | `CONFLICTING_VALUES` |
 | The registration or cohort is not known, or is outside the caller's tenancy | 404 | `REFERENCE_NOT_FOUND` |
-| No token, or a token that is invalid or expired | 401 | `ACCESS_DENIED` |
+| No token, or a token that is invalid or expired | 401 | `NO_ACCESS` |
 | Rate exceeded | 429 | `TOO_MANY_REQUESTS` |
 | Unavailable | 503 | `SYSTEM_UNAVAILABLE` |
 

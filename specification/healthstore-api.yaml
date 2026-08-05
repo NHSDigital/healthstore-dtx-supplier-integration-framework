@@ -14,6 +14,8 @@ tags:
     description: Registrations retrieved by the supplier platform.
   - name: lifecycle
     description: Lifecycle Tasks reported against a registration.
+security:
+  - clientCredentials: []
 paths:
   /registrations:
     $ref: './components/endpoints/searchRegistrations.yaml'
@@ -21,3 +23,15 @@ paths:
     $ref: './components/endpoints/getRegistration.yaml'
   /registrations/{registration-id}/tasks:
     $ref: './components/endpoints/postRegistrationTask.yaml'
+components:
+  securitySchemes:
+    clientCredentials:
+      type: oauth2
+      description: |
+        OAuth 2.0 client credentials, issued by NHS HealthStore to the platform.
+        Client authentication is client_secret_post. The token endpoint is served
+        from the same host as the API.
+      flows:
+        clientCredentials:
+          tokenUrl: /oauth2/token
+          scopes: {}

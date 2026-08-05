@@ -3,7 +3,7 @@ description: |
 
   | Error code | Description |
   |---|---|
-  | ACCESS_DENIED | No token, or a token that is invalid or expired |
+  | NO_ACCESS | No token, or a token that is invalid or expired |
 headers:
   X-Request-ID:
     $ref: '../headers/response/XRequestID.yaml'
@@ -20,5 +20,5 @@ content:
           code: login
           details:
             coding:
-              - code: ACCESS_DENIED
+              - code: NO_ACCESS
           diagnostics: No token, or a token that is invalid or expired

@@ -81,8 +81,8 @@ get:
                   authoredOn: '2026-08-04T09:00:00Z'
     '400':
       $ref: '../responses/BadRequest.yaml'
-    '403':
-      $ref: '../responses/Forbidden.yaml'
+    '401':
+      $ref: '../responses/Unauthorized.yaml'
     '404':
       $ref: '../responses/NotFound.yaml'
     '429':
