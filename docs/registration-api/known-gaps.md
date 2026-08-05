@@ -1,5 +1,17 @@
 # Known gaps
 
+## General
+
+- In the current service request, the patient's registered GP is included - is this relevant / required?
+- The area around what is required related to the following needs to be considered:
+  - The body that licenses e.g. commissioning body ODS
+  - The practitioner or organisation registering ODS and site ODS
+  - The practitioner responsible for care
+  - Condition (eg SNOMED)
+  - "Pathway" / programme of care
+  - Caseloads / case management
+  - Submodule of digital therapeutic product
+
 ## Luscii
 
 Mapped against `POST /v1/patients`.
