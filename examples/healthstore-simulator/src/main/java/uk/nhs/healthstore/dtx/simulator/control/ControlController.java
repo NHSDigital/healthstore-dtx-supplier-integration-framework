@@ -47,18 +47,20 @@ public class ControlController {
     public Map<String, Object> seedRegistration(
             @RequestParam(required = false) String fixture,
             @RequestParam(required = false) String priority,
-            @RequestParam(required = false) String cohort) {
-        Seeded seeded = seed(fixture, priority, cohort);
+            @RequestParam(required = false) String cohort,
+            @RequestParam(required = false) String performer) {
+        Seeded seeded = seed(fixture, priority, cohort, performer);
         return Map.of("registrationId", seeded.id().toString(), "fixture", seeded.fixture());
     }
 
     @PostMapping("/cohorts/{cohort}/registrations")
     public Map<String, Object> seedCohort(
             @PathVariable String cohort,
-            @RequestParam(defaultValue = "5") int count) {
+            @RequestParam(defaultValue = "5") int count,
+            @RequestParam(required = false) String performer) {
         List<Map<String, String>> seeded = new ArrayList<>();
         for (int i = 0; i < count; i++) {
-            Seeded s = seed(null, null, cohort);
+            Seeded s = seed(null, null, cohort, performer);
             seeded.add(Map.of("registrationId", s.id().toString(), "fixture", s.fixture()));
         }
         return Map.of("cohort", cohort, "registrations", seeded);
@@ -104,13 +106,13 @@ public class ControlController {
     private record Seeded(UUID id, String fixture) {
     }
 
-    private Seeded seed(String fixture, String priority, String cohort) {
+    private Seeded seed(String fixture, String priority, String cohort, String performer) {
         int seq = store.nextSeed();
         String chosen = fixture != null ? fixture : fixtures.nameForSeed(seq);
         UUID id = registrationId(seq);
         try {
             RegistrationServiceRequest resource =
-                    fixtures.instantiate(chosen, id, priority, OffsetDateTime.now(clock));
+                    fixtures.instantiate(chosen, id, priority, performer, OffsetDateTime.now(clock));
             store.seed(id, resource, cohort);
         } catch (IllegalArgumentException e) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, e.getMessage());

@@ -93,8 +93,9 @@ England.
 
 ## Errors
 
-Every endpoint except `/oauth/token` returns an `OperationOutcome` on error.
-`/oauth/token` returns the OAuth 2.0 error response.
+Every endpoint except the token endpoints returns an `OperationOutcome` on
+error. The token endpoints, `/oauth/token` on the supplier API and
+`/oauth2/token` on the Registrations API, return the OAuth 2.0 error response.
 
 | Failure | Status | Code |
 |---|---|---|

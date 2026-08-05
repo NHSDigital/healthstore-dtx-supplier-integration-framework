@@ -38,13 +38,16 @@ public class SupplierGateway {
     }
 
     private final RestClient restClient;
+    private final SupplierTokenClient tokens;
     private final Clock clock;
     private final Map<String, Sent> sent = new ConcurrentHashMap<>();
 
     public SupplierGateway(
             Clock clock,
+            SupplierTokenClient tokens,
             @Value("${simulator.supplier-base-url}") String supplierBaseUrl) {
         this.restClient = RestClient.builder().baseUrl(supplierBaseUrl).build();
+        this.tokens = tokens;
         this.clock = clock;
     }
 
@@ -64,6 +67,7 @@ public class SupplierGateway {
 
     public void reset() {
         sent.clear();
+        tokens.reset();
     }
 
     private Map<String, Object> post(Sent request, boolean redelivery) {
@@ -71,21 +75,41 @@ public class SupplierGateway {
         result.put("redelivery", redelivery);
         result.put("xRequestId", request.xRequestId().toString());
         try {
-            ResponseEntity<AcceptedRegistrationRequestTask> response = restClient.post()
-                    .uri("/healthstore-registration-requests")
-                    .contentType(FHIR_JSON)
-                    .header("X-Request-ID", request.xRequestId().toString())
-                    .body(request.task())
-                    .retrieve()
-                    .toEntity(AcceptedRegistrationRequestTask.class);
-            result.put("status", response.getStatusCode().value());
-            result.put("taskStatus", response.getBody() == null ? null : response.getBody().getStatus().getValue());
-            result.put("lastModified", response.getBody() == null ? null : String.valueOf(response.getBody().getLastModified()));
+            deliver(request, tokens.bearer(), result);
         } catch (RestClientResponseException e) {
-            result.put("status", e.getStatusCode().value());
-            result.put("error", e.getResponseBodyAsString());
+            // A 401 despite a locally unexpired token means the supplier no
+            // longer honours it (expired there, or the supplier restarted).
+            if (e.getStatusCode().value() != 401) {
+                fail(result, e);
+                return result;
+            }
+            try {
+                deliver(request, tokens.reacquire(), result);
+            } catch (RestClientResponseException replay) {
+                fail(result, replay);
+            }
         }
         return result;
+    }
+
+    private void deliver(Sent request, SupplierTokenClient.Bearer bearer, Map<String, Object> result) {
+        result.put("auth", bearer.how());
+        ResponseEntity<AcceptedRegistrationRequestTask> response = restClient.post()
+                .uri("/healthstore-registration-requests")
+                .contentType(FHIR_JSON)
+                .header("Authorization", "Bearer " + bearer.token())
+                .header("X-Request-ID", request.xRequestId().toString())
+                .body(request.task())
+                .retrieve()
+                .toEntity(AcceptedRegistrationRequestTask.class);
+        result.put("status", response.getStatusCode().value());
+        result.put("taskStatus", response.getBody() == null ? null : response.getBody().getStatus().getValue());
+        result.put("lastModified", response.getBody() == null ? null : String.valueOf(response.getBody().getLastModified()));
+    }
+
+    private static void fail(Map<String, Object> result, RestClientResponseException e) {
+        result.put("status", e.getStatusCode().value());
+        result.put("error", e.getResponseBodyAsString());
     }
 
     private ProcessSpecificServiceRequestTask specificTask(UUID registrationId, RequestPriority priority) {

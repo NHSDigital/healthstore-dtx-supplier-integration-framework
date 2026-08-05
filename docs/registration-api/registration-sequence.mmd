@@ -3,9 +3,16 @@ sequenceDiagram
     participant Platform as Supplier platform
 
     Note over HealthStore,Platform: X-Request-ID on every call, mirrored in the response. A retry replays the request exactly.
+    Note over HealthStore,Platform: Each side sends its access token as a bearer on every call,<br/>cached against expires_in, re-acquired on expiry or 401.
+
+    HealthStore->>Platform: POST /oauth/token<br/>client_credentials, credentials issued by the platform
+    Platform-->>HealthStore: 200 access token, expires_in
 
     HealthStore->>Platform: POST /healthstore-registration-requests<br/>Task requested: process-specific-service-request (focus)<br/>or process-available-service-requests (groupIdentifier)
     Platform-->>HealthStore: 200 Task accepted, identifier echoed, lastModified set
+
+    Platform->>HealthStore: POST /oauth2/token<br/>client_credentials, credentials issued by NHS HealthStore
+    HealthStore-->>Platform: 200 access token, expires_in
 
     alt one registration
         Platform->>HealthStore: GET /registrations/{registration-id}

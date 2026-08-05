@@ -29,6 +29,14 @@ public class ApiExceptionHandler {
                 e.getMessage(), null);
     }
 
+    @ExceptionHandler(NoAccessException.class)
+    public ResponseEntity<OperationOutcome> noAccess(NoAccessException e) {
+        return outcome(HttpStatus.UNAUTHORIZED,
+                OperationOutcomeIssueInner.CodeEnum.LOGIN,
+                OperationOutcomeIssueInnerDetailsCodingInner.CodeEnum.NO_ACCESS,
+                e.getMessage(), null);
+    }
+
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<OperationOutcome> invalidBody(MethodArgumentNotValidException e) {
         List<OperationOutcomeIssueInner> issues = e.getBindingResult().getFieldErrors().stream()

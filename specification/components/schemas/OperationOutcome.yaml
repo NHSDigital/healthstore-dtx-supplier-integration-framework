@@ -86,7 +86,7 @@ properties:
                       - MISSING_PARAMETER
                       - CONFLICTING_VALUES
                       - REFERENCE_NOT_FOUND
-                      - NO_RELATIONSHIP
+                      - NO_ACCESS
                       - SYSTEM_UNAVAILABLE
                   display:
                     type: string

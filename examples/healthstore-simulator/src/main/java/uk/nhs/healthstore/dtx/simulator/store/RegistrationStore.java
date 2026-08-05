@@ -70,15 +70,33 @@ public class RegistrationStore {
         return Optional.ofNullable(registrations.get(id));
     }
 
+    // A registration with no performer is visible to no supplier, and
+    // out-of-tenancy is indistinguishable from unknown.
+    public synchronized Optional<Registration> find(UUID id, String callerOds) {
+        return find(id).filter(r -> visibleTo(r, callerOds));
+    }
+
     public synchronized boolean cohortKnown(String cohort) {
         return registrations.values().stream().anyMatch(r -> cohort.equals(r.cohort));
     }
 
-    public synchronized List<Registration> worklist(String cohort) {
+    public synchronized boolean cohortKnown(String cohort, String callerOds) {
         return registrations.values().stream()
                 .filter(r -> cohort.equals(r.cohort))
+                .anyMatch(r -> visibleTo(r, callerOds));
+    }
+
+    public synchronized List<Registration> worklist(String cohort, String callerOds) {
+        return registrations.values().stream()
+                .filter(r -> cohort.equals(r.cohort))
+                .filter(r -> visibleTo(r, callerOds))
                 .filter(Registration::onWorklist)
                 .toList();
+    }
+
+    private static boolean visibleTo(Registration r, String callerOds) {
+        return r.resource.getPerformer() != null && r.resource.getPerformer().stream()
+                .anyMatch(p -> p.getIdentifier().getValue().equals(callerOds));
     }
 
     public synchronized boolean recordTask(UUID id, LifecycleTask task, UUID xRequestId, OffsetDateTime now) {
@@ -110,6 +128,9 @@ public class RegistrationStore {
             Map<String, Object> entry = new LinkedHashMap<>();
             entry.put("status", r.resource.getStatus().getValue());
             entry.put("cohort", r.cohort);
+            entry.put("performer", r.resource.getPerformer() == null
+                    ? List.of()
+                    : r.resource.getPerformer().stream().map(p -> p.getIdentifier().getValue()).toList());
             entry.put("onWorklist", r.onWorklist());
             entry.put("receivedTasks", r.tasks.stream().map(t -> Map.of(
                     "status", t.task().getStatus().getValue(),

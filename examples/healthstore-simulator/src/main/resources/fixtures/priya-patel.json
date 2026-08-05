@@ -60,5 +60,14 @@
       "value": "RX898"
     },
     "display": "Example NHS Trust"
-  }
+  },
+  "performer": [
+    {
+      "identifier": {
+        "system": "https://fhir.nhs.uk/Id/ods-organization-code",
+        "value": "8JK09"
+      },
+      "display": "Example DTx Provider"
+    }
+  ]
 }

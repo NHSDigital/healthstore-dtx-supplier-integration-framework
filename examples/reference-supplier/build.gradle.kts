@@ -29,6 +29,9 @@ val registrationsClientGen = layout.buildDirectory.dir("generated/registrations-
 
 val generateSupplierServer by tasks.registering(GenerateTask::class) {
     generatorName.set("spring")
+    // inputSpec tracks only the root file; the referenced components must
+    // also invalidate the task.
+    inputs.dir(layout.projectDirectory.dir("../../specification"))
     inputSpec.set(layout.projectDirectory.file("../../specification/supplier-api.yaml").asFile.absolutePath)
     outputDir.set(supplierServerGen.asFile.absolutePath)
     apiPackage.set("uk.nhs.healthstore.dtx.referencesupplier.api")
@@ -53,6 +56,7 @@ val generateSupplierServer by tasks.registering(GenerateTask::class) {
 val generateRegistrationsClient by tasks.registering(GenerateTask::class) {
     generatorName.set("java")
     library.set("restclient")
+    inputs.dir(layout.projectDirectory.dir("../../specification"))
     inputSpec.set(layout.projectDirectory.file("../../specification/healthstore-api.yaml").asFile.absolutePath)
     outputDir.set(registrationsClientGen.asFile.absolutePath)
     apiPackage.set("uk.nhs.healthstore.dtx.referencesupplier.registrations.client")

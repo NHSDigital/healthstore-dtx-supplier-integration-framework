@@ -1,5 +1,6 @@
 package uk.nhs.healthstore.dtx.simulator.web;
 
+import jakarta.servlet.http.HttpServletRequest;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.time.Clock;
@@ -27,14 +28,17 @@ public class RegistrationsController implements RegistrationsApi, LifecycleApi {
     private final RegistrationStore store;
     private final Clock clock;
     private final String publicBaseUrl;
+    private final HttpServletRequest request;
 
     public RegistrationsController(
             RegistrationStore store,
             Clock clock,
-            @Value("${simulator.public-base-url}") String publicBaseUrl) {
+            @Value("${simulator.public-base-url}") String publicBaseUrl,
+            HttpServletRequest request) {
         this.store = store;
         this.clock = clock;
         this.publicBaseUrl = publicBaseUrl;
+        this.request = request;
     }
 
     @Override
@@ -45,7 +49,7 @@ public class RegistrationsController implements RegistrationsApi, LifecycleApi {
     @Override
     public ResponseEntity<RegistrationServiceRequest> getRegistration(
             UUID registrationId, UUID xRequestID, String xCorrelationID) {
-        RegistrationStore.Registration registration = store.find(registrationId)
+        RegistrationStore.Registration registration = store.find(registrationId, callerOds())
                 .orElseThrow(() -> new NotKnownException("The registration is not known"));
         return ResponseEntity.ok(registration.resource());
     }
@@ -53,10 +57,10 @@ public class RegistrationsController implements RegistrationsApi, LifecycleApi {
     @Override
     public ResponseEntity<RegistrationSearchsetBundle> searchRegistrations(
             String cohort, Integer count, Integer page, UUID xRequestID, String xCorrelationID) {
-        if (!store.cohortKnown(cohort)) {
+        if (!store.cohortKnown(cohort, callerOds())) {
             throw new NotKnownException("The cohort is not known");
         }
-        List<RegistrationStore.Registration> worklist = store.worklist(cohort);
+        List<RegistrationStore.Registration> worklist = store.worklist(cohort, callerOds());
         int from = Math.min((page - 1) * count, worklist.size());
         int to = Math.min(from + count, worklist.size());
 
@@ -82,10 +86,14 @@ public class RegistrationsController implements RegistrationsApi, LifecycleApi {
     @Override
     public ResponseEntity<Void> postRegistrationTask(
             UUID registrationId, UUID xRequestID, LifecycleTask lifecycleTask, String xCorrelationID) {
-        store.find(registrationId)
+        store.find(registrationId, callerOds())
                 .orElseThrow(() -> new NotKnownException("The registration is not known"));
         store.recordTask(registrationId, lifecycleTask, xRequestID, OffsetDateTime.now(clock));
         return ResponseEntity.ok().build();
+    }
+
+    private String callerOds() {
+        return (String) request.getAttribute(AuthInterceptor.CALLER_ODS);
     }
 
     private RegistrationSearchsetBundleLinkInner link(

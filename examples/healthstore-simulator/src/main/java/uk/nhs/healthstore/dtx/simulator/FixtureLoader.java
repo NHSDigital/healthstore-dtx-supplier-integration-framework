@@ -21,6 +21,8 @@ import org.springframework.stereotype.Component;
 import uk.nhs.healthstore.dtx.simulator.api.model.ContainedPatientTelecomInner;
 import uk.nhs.healthstore.dtx.simulator.api.model.ContainedPatientTelecomInnerOneOf;
 import uk.nhs.healthstore.dtx.simulator.api.model.ContainedPatientTelecomInnerOneOf1;
+import uk.nhs.healthstore.dtx.simulator.api.model.OdsOrganizationIdentifier;
+import uk.nhs.healthstore.dtx.simulator.api.model.OdsReference;
 import uk.nhs.healthstore.dtx.simulator.api.model.RegistrationServiceRequest;
 import uk.nhs.healthstore.dtx.simulator.api.model.RequestPriority;
 
@@ -80,7 +82,8 @@ public class FixtureLoader {
     }
 
     public RegistrationServiceRequest instantiate(
-            String fixture, UUID registrationId, String priorityOverride, OffsetDateTime authoredOn) {
+            String fixture, UUID registrationId, String priorityOverride, String performerOdsOverride,
+            OffsetDateTime authoredOn) {
         JsonNode node = fixtures.get(fixture);
         if (node == null) {
             throw new IllegalArgumentException(
@@ -92,6 +95,11 @@ public class FixtureLoader {
             resource.setAuthoredOn(authoredOn);
             if (priorityOverride != null) {
                 resource.setPriority(RequestPriority.fromValue(priorityOverride));
+            }
+            if (performerOdsOverride != null) {
+                resource.setPerformer(List.of(new OdsReference(new OdsOrganizationIdentifier(
+                        OdsOrganizationIdentifier.SystemEnum.HTTPS_FHIR_NHS_UK_ID_ODS_ORGANIZATION_CODE,
+                        performerOdsOverride))));
             }
             return resource;
         } catch (IOException e) {
