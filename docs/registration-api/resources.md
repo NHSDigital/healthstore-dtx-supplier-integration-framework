@@ -86,8 +86,7 @@ Every endpoint except `/oauth/token` returns an `OperationOutcome` on error.
 | A required header is absent | 400 | `MISSING_HEADER` |
 | A required query parameter is absent | 400 | `MISSING_PARAMETER` |
 | `code`, `focus` and `groupIdentifier` disagree | 422 | `CONFLICTING_VALUES` |
-| The registration or cohort is not known | 404 | `REFERENCE_NOT_FOUND` |
-| The caller is not scoped to that registration | 403 | `NO_RELATIONSHIP` |
+| The registration or cohort is not known, or is outside the caller's tenancy | 404 | `REFERENCE_NOT_FOUND` |
 | No token, or a token that is invalid or expired | 401 | `ACCESS_DENIED` |
 | Rate exceeded | 429 | `TOO_MANY_REQUESTS` |
 | Unavailable | 503 | `SYSTEM_UNAVAILABLE` |
