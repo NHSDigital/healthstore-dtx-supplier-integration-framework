@@ -69,6 +69,8 @@ upstream, so its membership is fixed before any registration request is sent.
 4. Subsequent use of the digital therapeutic produces a Task representing
    activation.
 
+![Registration sequence](registration-sequence.png)
+
 The registration request carries no clinical content, only enough to say what to
 retrieve. Neither case identifies the patient; the identifier is the
 registration's.
