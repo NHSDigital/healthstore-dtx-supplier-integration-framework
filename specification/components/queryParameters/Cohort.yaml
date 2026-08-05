@@ -1,0 +1,6 @@
+name: cohort
+in: query
+required: true
+description: The cohort identifier.
+schema:
+  type: string

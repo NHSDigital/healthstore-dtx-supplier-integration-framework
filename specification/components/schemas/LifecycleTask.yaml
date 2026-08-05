@@ -1,0 +1,52 @@
+title: LifecycleTask
+description: |
+  A lifecycle Task reported against the registration. status takes a
+  task-status value and businessStatus carries the domain state.
+type: object
+required:
+  - resourceType
+  - status
+  - intent
+  - businessStatus
+properties:
+  resourceType:
+    type: string
+    enum:
+      - Task
+  status:
+    type: string
+    enum:
+      - draft
+      - requested
+      - received
+      - accepted
+      - rejected
+      - ready
+      - cancelled
+      - in-progress
+      - on-hold
+      - failed
+      - completed
+      - entered-in-error
+  intent:
+    type: string
+    enum:
+      - unknown
+      - proposal
+      - plan
+      - order
+      - original-order
+      - reflex-order
+      - filler-order
+      - instance-order
+      - option
+  businessStatus:
+    type: object
+    description: The domain state of the registration.
+    properties:
+      coding:
+        type: array
+        items:
+          $ref: './Coding.yaml'
+      text:
+        type: string

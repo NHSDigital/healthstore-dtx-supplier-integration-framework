@@ -1,0 +1,17 @@
+openapi: 3.0.3
+info:
+  title: Supplier API
+  version: 0.1.0
+  description: |
+    Implemented by third party digital therapeutics platforms and called by NHS HealthStore.
+    Receives registration request Tasks naming what to retrieve from the
+    Registrations API.
+servers:
+  - url: https://dtx-platform.example.com
+    description: Representative. Base paths are not yet set.
+tags:
+  - name: registration-requests
+    description: Registration requests sent by NHS HealthStore.
+paths:
+  /healthstore-registration-requests:
+    $ref: './components/endpoints/postRegistrationRequest.yaml'

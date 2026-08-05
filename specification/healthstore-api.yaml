@@ -1,0 +1,23 @@
+openapi: 3.0.3
+info:
+  title: Registrations API
+  version: 0.1.0
+  description: |
+    Implemented by NHS HealthStore and called by digital therapeutics platforms. Serves
+    registrations as ServiceRequests and receives lifecycle Tasks reported
+    against them.
+servers:
+  - url: https://api.healthstore.nhs.uk
+    description: Representative. Base paths are not yet set.
+tags:
+  - name: registrations
+    description: Registrations retrieved by the supplier platform.
+  - name: lifecycle
+    description: Lifecycle Tasks reported against a registration.
+paths:
+  /registrations:
+    $ref: './components/endpoints/searchRegistrations.yaml'
+  /registrations/{registration-id}:
+    $ref: './components/endpoints/getRegistration.yaml'
+  /registrations/{registration-id}/tasks:
+    $ref: './components/endpoints/postRegistrationTask.yaml'

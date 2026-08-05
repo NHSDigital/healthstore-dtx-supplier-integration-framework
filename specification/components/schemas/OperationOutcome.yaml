@@ -1,0 +1,98 @@
+title: OperationOutcome
+description: |
+  Returned on every error, with one issue per problem found. expression names
+  the element at fault, the contract's error code goes in details, and
+  specifics go in diagnostics.
+type: object
+required:
+  - resourceType
+  - issue
+properties:
+  resourceType:
+    type: string
+    enum:
+      - OperationOutcome
+  issue:
+    type: array
+    minItems: 1
+    items:
+      type: object
+      required:
+        - severity
+        - code
+      properties:
+        severity:
+          type: string
+          enum:
+            - fatal
+            - error
+            - warning
+            - information
+        code:
+          type: string
+          enum:
+            - invalid
+            - structure
+            - required
+            - value
+            - invariant
+            - security
+            - login
+            - unknown
+            - expired
+            - forbidden
+            - suppressed
+            - processing
+            - not-supported
+            - duplicate
+            - multiple-matches
+            - not-found
+            - deleted
+            - too-long
+            - code-invalid
+            - extension
+            - too-costly
+            - business-rule
+            - conflict
+            - transient
+            - lock-error
+            - no-store
+            - exception
+            - timeout
+            - incomplete
+            - throttled
+            - informational
+        details:
+          type: object
+          description: This contract's error code.
+          properties:
+            coding:
+              type: array
+              items:
+                type: object
+                required:
+                  - code
+                properties:
+                  system:
+                    type: string
+                  code:
+                    type: string
+                    enum:
+                      - INVALID_FHIR_STRUCTURE
+                      - MISSING_VALUE
+                      - INVALID_VALUE
+                      - INVALID_CODE
+                      - MISSING_HEADER
+                      - MISSING_PARAMETER
+                      - CONFLICTING_VALUES
+                      - REFERENCE_NOT_FOUND
+                      - NO_RELATIONSHIP
+                      - SYSTEM_UNAVAILABLE
+                  display:
+                    type: string
+        diagnostics:
+          type: string
+        expression:
+          type: array
+          items:
+            type: string

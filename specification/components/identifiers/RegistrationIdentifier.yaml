@@ -1,0 +1,17 @@
+title: RegistrationIdentifier
+description: |
+  Identifies one registration. Issued by HealthStore, stable for the
+  registration's life.
+type: object
+required:
+  - system
+  - value
+properties:
+  system:
+    type: string
+    enum:
+      - 'https://fhir.healthstore.nhs.uk/Id/registration'
+  value:
+    type: string
+    format: uuid
+    example: 0b93b9a2-6ac2-4d31-a3d0-7c3ef1a29a3f

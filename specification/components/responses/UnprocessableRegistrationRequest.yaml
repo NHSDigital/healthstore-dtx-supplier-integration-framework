@@ -1,0 +1,30 @@
+description: |
+  code, focus and groupIdentifier disagree.
+
+  | Error code | Description |
+  |---|---|
+  | CONFLICTING_VALUES | code, focus and groupIdentifier disagree |
+headers:
+  X-Request-ID:
+    $ref: '../headers/response/XRequestID.yaml'
+  X-Correlation-ID:
+    $ref: '../headers/response/XCorrelationID.yaml'
+content:
+  application/fhir+json:
+    schema:
+      $ref: '../schemas/OperationOutcome.yaml'
+    example:
+      resourceType: OperationOutcome
+      issue:
+        - severity: error
+          code: invariant
+          details:
+            coding:
+              - code: CONFLICTING_VALUES
+          diagnostics: >-
+            code is process-specific-service-request but groupIdentifier is
+            present
+          expression:
+            - Task.code
+            - Task.focus
+            - Task.groupIdentifier

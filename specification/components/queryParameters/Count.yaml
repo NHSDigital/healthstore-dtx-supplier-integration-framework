@@ -1,0 +1,8 @@
+name: _count
+in: query
+required: true
+description: Page size, 1 to 100.
+schema:
+  type: integer
+  minimum: 1
+  maximum: 100

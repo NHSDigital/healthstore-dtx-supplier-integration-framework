@@ -1,0 +1,16 @@
+description: Rate exceeded.
+headers:
+  X-Request-ID:
+    $ref: '../headers/response/XRequestID.yaml'
+  X-Correlation-ID:
+    $ref: '../headers/response/XCorrelationID.yaml'
+content:
+  application/fhir+json:
+    schema:
+      $ref: '../schemas/OperationOutcome.yaml'
+    example:
+      resourceType: OperationOutcome
+      issue:
+        - severity: error
+          code: throttled
+          diagnostics: Rate exceeded

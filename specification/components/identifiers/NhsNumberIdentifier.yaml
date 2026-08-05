@@ -1,0 +1,60 @@
+title: NhsNumberIdentifier
+description: |
+  The verified NHS number, with its verification status extension fixed
+  to 01.
+type: object
+required:
+  - system
+  - value
+  - extension
+properties:
+  system:
+    type: string
+    enum:
+      - 'https://fhir.nhs.uk/Id/nhs-number'
+  value:
+    type: string
+    pattern: '^\d{10}$'
+    description: 10 digits with a mod-11 check digit.
+    example: '9000000009'
+  extension:
+    type: array
+    minItems: 1
+    maxItems: 1
+    items:
+      type: object
+      required:
+        - url
+        - valueCodeableConcept
+      properties:
+        url:
+          type: string
+          enum:
+            - 'https://fhir.hl7.org.uk/StructureDefinition/Extension-UKCore-NHSNumberVerificationStatus'
+        valueCodeableConcept:
+          type: object
+          required:
+            - coding
+          properties:
+            coding:
+              type: array
+              minItems: 1
+              maxItems: 1
+              items:
+                type: object
+                required:
+                  - system
+                  - code
+                properties:
+                  system:
+                    type: string
+                    enum:
+                      - 'https://fhir.hl7.org.uk/CodeSystem/UKCore-NHSNumberVerificationStatusEngland'
+                  code:
+                    type: string
+                    enum:
+                      - '01'
+                  display:
+                    type: string
+                    enum:
+                      - Number present and verified

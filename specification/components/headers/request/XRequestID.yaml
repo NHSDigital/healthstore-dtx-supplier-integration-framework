@@ -1,0 +1,10 @@
+name: X-Request-ID
+in: header
+required: true
+description: |
+  A GUID for this request, mirrored back in the response. A retry carries
+  the same value.
+schema:
+  type: string
+  format: uuid
+  example: c1a442f7-8bcd-4d0a-9d3b-5f6e7a8b9c0d

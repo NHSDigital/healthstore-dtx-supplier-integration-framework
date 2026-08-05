@@ -1,0 +1,44 @@
+post:
+  operationId: postRegistrationTask
+  tags:
+    - lifecycle
+  summary: Submit a lifecycle Task against a registration
+  description: |
+    Records a lifecycle Task against the registration: accepted, rejected or
+    activated. The response concerns the Task, not the registration. Only a
+    malformed Task or an unknown identifier is refused.
+  parameters:
+    - $ref: '../pathParameters/RegistrationId.yaml'
+    - $ref: '../headers/request/XRequestID.yaml'
+    - $ref: '../headers/request/XCorrelationID.yaml'
+  requestBody:
+    required: true
+    content:
+      application/fhir+json:
+        schema:
+          $ref: '../schemas/LifecycleTask.yaml'
+        example:
+          resourceType: Task
+          status: accepted
+          intent: order
+          businessStatus:
+            text: registered
+  responses:
+    '200':
+      description: |
+        The Task was recorded. The body of this response is not yet defined.
+      headers:
+        X-Request-ID:
+          $ref: '../headers/response/XRequestID.yaml'
+        X-Correlation-ID:
+          $ref: '../headers/response/XCorrelationID.yaml'
+    '400':
+      $ref: '../responses/BadRequest.yaml'
+    '403':
+      $ref: '../responses/Forbidden.yaml'
+    '404':
+      $ref: '../responses/NotFound.yaml'
+    '429':
+      $ref: '../responses/TooManyRequests.yaml'
+    '503':
+      $ref: '../responses/ServiceUnavailable.yaml'

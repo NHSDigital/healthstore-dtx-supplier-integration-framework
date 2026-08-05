@@ -1,0 +1,8 @@
+name: registration-id
+in: path
+required: true
+description: The registration identifier.
+schema:
+  type: string
+  format: uuid
+  example: 0b93b9a2-6ac2-4d31-a3d0-7c3ef1a29a3f

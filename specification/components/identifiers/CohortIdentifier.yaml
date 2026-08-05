@@ -1,0 +1,13 @@
+title: CohortIdentifier
+description: Identifies one cohort. The format is set upstream.
+type: object
+required:
+  - system
+  - value
+properties:
+  system:
+    type: string
+    enum:
+      - 'https://fhir.healthstore.nhs.uk/Id/cohort'
+  value:
+    type: string

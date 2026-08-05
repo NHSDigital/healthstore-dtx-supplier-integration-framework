@@ -1,0 +1,8 @@
+title: RequestPriority
+description: |
+  Constrained from request-priority to the values this contract uses. asap
+  for a face to face registration, routine for an invited cohort.
+type: string
+enum:
+  - routine
+  - asap
