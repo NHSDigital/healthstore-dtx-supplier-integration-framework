@@ -9,6 +9,16 @@ specs, schemas, examples and tests.
 - [FHIR resources and fields](docs/registration-api/fhir.md)
 - [Resources and paths](docs/registration-api/resources.md)
 
+## Examples
+
+Runnable examples of both sides of the registration contract:
+
+- [reference-supplier](examples/reference-supplier): a supplier platform
+  with server and client code generated from the specification.
+- [healthstore-simulator](examples/healthstore-simulator): an in-memory
+  Health Store stand-in that sends registration requests and serves the
+  Registrations API; see its [README](examples/healthstore-simulator/README.md).
+
 ## How to contribute
 
 - NHS Digital: raise an issue or open a PR; see `.github/PULL_REQUEST_TEMPLATE.md`.
