@@ -81,7 +81,7 @@ Patients are validated against PDS upstream of registration.
 
 ### Patient
 
-Against `UKCore-Patient` 2.5.0, package `fhir.r4.ukcore.stu2` 2.1.0.
+Profiled against `UKCore-Patient` 2.5.0, package `fhir.r4.ukcore.stu2` 2.1.0.
 
 | Field | FHIR R4 element | Format | Card |
 |---|---|---|---|
@@ -161,7 +161,7 @@ A system URI travels only on the coded and identifier-typed elements.
 | `groupIdentifier` | `Identifier` | `https://fhir.healthstore.nhs.uk/Id/cohort` |
 | `focus` | `Reference` | `https://fhir.healthstore.nhs.uk/Id/registration`, if referenced by identifier rather than by URL |
 
-Each `system` value below is fixed and is the only value permitted.
+Each `system` value is fixed and is the only value permitted.
 
 These URIs are provisional and assume HealthStore takes
 its own `fhir.healthstore.nhs.uk` subdomain, and that what the supplier sees is
@@ -216,7 +216,7 @@ FHIR R4 resources:
 - Patient: https://hl7.org/fhir/R4/patient.html
 - NamingSystem: https://hl7.org/fhir/R4/namingsystem.html
 
-Profiles. The `fhir.hl7.org.uk` and `fhir.nhs.uk` profiles and references are below.
+The `fhir.hl7.org.uk` and `fhir.nhs.uk` profiles and references:
 
 | Profile | Canonical identifier | Version | Where to read it |
 |---|---|---|---|
