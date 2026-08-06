@@ -53,7 +53,10 @@ properties:
     type: array
     minItems: 2
     maxItems: 2
-    description: One email and one phone.
+    description: |
+      One email and one phone. The server validates the pairing; the schema
+      alone cannot express it. use is required on email, fixed to home, and
+      optional on phone.
     items:
       oneOf:
         - type: object

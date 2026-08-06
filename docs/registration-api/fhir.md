@@ -13,7 +13,7 @@ A `Task`, sent by HealthStore to the supplier platform.
 | `status` | `requested` | "The task is ready to be acted upon and action is sought." |
 | `intent` | `order` | |
 | `code` | Process specific service request, or Process available service requests | Scope |
-| `priority` | Matches `ServiceRequest.priority` | Same `request-priority` value set. Typically `asap` for a specific request, `routine` for available requests |
+| `priority` | Matches `ServiceRequest.priority` | Constrained from `request-priority` to `routine` and `asap`: `asap` for a specific request, `routine` for available requests |
 | `focus` | `Reference(ServiceRequest)` | Required for a specific request, absent for an available-requests one |
 | `groupIdentifier` | Cohort identifier | Required for an available-requests one, absent otherwise |
 | `for` | Omitted | |
@@ -32,7 +32,8 @@ it concerns carry the same value.
 | `process-specific-service-request` | required | must be absent |
 | `process-available-service-requests` | must be absent | required |
 
-Where `code`, `focus` and `groupIdentifier` disagree, the request is rejected.
+Where `code`, `focus` and `groupIdentifier` disagree, the request fails the
+schema and is rejected with a 400.
 
 ### Required by this contract
 
@@ -88,7 +89,7 @@ Profiled against `UKCore-Patient` 2.5.0, package `fhir.r4.ukcore.stu2` 2.1.0.
 | `first_name` | `Patient.name.where(use='official').given[0]` | string | 1..1 |
 | `last_name` | `Patient.name.where(use='official').family` | string | 1..1 |
 | `date_of_birth` | `Patient.birthDate` | `YYYY-MM-DD` | 1..1 |
-| `nhs_number` | `Patient.identifier:nhsNumber` | 10 digits, mod-11 | 1..1 |
+| `nhs_number` | `Patient.identifier:nhsNumber` | 10 digits, mod-11; the schema checks format only | 1..1 |
 | `nhs_number_verification_status` | `Patient.identifier:nhsNumber.extension:nhsNumberVerificationStatus` | Fixed `01`, "Number present and verified", system `https://fhir.hl7.org.uk/CodeSystem/UKCore-NHSNumberVerificationStatusEngland` | 1..1 |
 | `email` | `Patient.telecom` where `system=email` | valid email, `use=home` | 1..1 |
 | `phone` | `Patient.telecom` where `system=phone` | E.164 | 1..1 |
@@ -125,7 +126,7 @@ The cardinality column gives base FHIR R4. It makes `status`, `intent` and
 | `requester` | `ServiceRequest.requester` | 0..1 | `Reference(Practitioner \| PractitionerRole \| Organization \| Patient \| RelatedPerson \| Device)` |
 | `performer` | `ServiceRequest.performer` | 0..* | Intended digital therapeutic provider or service |
 | `reason` | `ServiceRequest.reasonCode` | 0..* | Clinical indication. Base binding is `example` strength, so the value set is ours |
-| `priority` | `ServiceRequest.priority` | 0..1 | Bound to `request-priority`, the same value set as `Task.priority`. `asap` where made face to face with the practitioner attending, `routine` for an invited cohort. The registration request carries the same value |
+| `priority` | `ServiceRequest.priority` | 0..1 | Constrained from `request-priority` to `routine` and `asap`, the same values as `Task.priority`. `asap` where made face to face with the practitioner attending, `routine` for an invited cohort. The registration request carries the same value |
 
 Demographics stay on Patient and resolve through `ServiceRequest.subject`.
 
@@ -187,15 +188,16 @@ Both values of `code` come from
 
 ## Value sets used
 
-`Task.status`, `Task.intent` and `Task.priority` take the FHIR R4 value sets
-unchanged:
+`Task.status` and `Task.intent` take the FHIR R4 value sets unchanged:
 
 - status: `draft`, `requested`, `received`, `accepted`, `rejected`, `ready`,
   `cancelled`, `in-progress`, `on-hold`, `failed`, `completed`,
   `entered-in-error`
 - intent: `unknown`, `proposal`, `plan`, `order`, `original-order`,
   `reflex-order`, `filler-order`, `instance-order`, `option`
-- priority: `routine`, `urgent`, `asap`, `stat`
+
+`Task.priority` is constrained from the FHIR `request-priority` set to
+`routine` and `asap`. `urgent` and `stat` are rejected with `INVALID_CODE`.
 
 `Task.code` is the one value set we define, in the code system above.
 

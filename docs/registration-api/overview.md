@@ -49,14 +49,14 @@ upstream, so its membership is fixed before any registration request is sent.
   - Is the Task well formed, with its required fields present and valid?
   - Does it relate to a registration that exists and was issued?
 - Lifecycle Tasks carry `status` from the FHIR set and the domain state in
-  `businessStatus`. Registered, activated and de-registered are business states,
-  not FHIR ones.
+  `businessStatus`. Registered, rejected, activated and deactivated are
+  business states, not FHIR ones.
 - HealthStore is lenient about sequence. A Task that arrives out of order, or
   without the one that would normally precede it, is recorded rather than
   refused. Only a malformed Task or an unknown identifier is refused.
 - Registration lifecycle is reported against the ServiceRequest, not against the
-  registration request. Accepted, rejected and activated hold whether or not a
-  registration request ever reached the platform.
+  registration request. Registered, rejected, activated and deactivated hold
+  whether or not a registration request ever reached the platform.
 - The retry schedule is HealthStore's own. The bounds on it are not.
 
 ## The flow
@@ -108,8 +108,8 @@ basis as consent.
 - The retrieval identifies a ServiceRequest whose status is `revoked`.
 - A Task is submitted with that express intent.
 
-**Confirming it.** A Task against the ServiceRequest, as acceptance and
-activation are.
+**Confirming it.** A Task against the ServiceRequest carrying `businessStatus`
+`deactivated`, as acceptance and activation are.
 
 **Platform-initiated.** Also a Task against the ServiceRequest. The platform
 reports; it does not alter the ServiceRequest. Candidate cases: consent

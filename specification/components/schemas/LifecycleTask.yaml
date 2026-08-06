@@ -41,12 +41,4 @@ properties:
       - instance-order
       - option
   businessStatus:
-    type: object
-    description: The domain state of the registration.
-    properties:
-      coding:
-        type: array
-        items:
-          $ref: './Coding.yaml'
-      text:
-        type: string
+    $ref: '../codesystems/BusinessStatus.yaml'

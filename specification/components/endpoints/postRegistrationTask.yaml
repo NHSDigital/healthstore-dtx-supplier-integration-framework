@@ -4,9 +4,9 @@ post:
     - lifecycle
   summary: Submit a lifecycle Task against a registration
   description: |
-    Records a lifecycle Task against the registration: accepted, rejected or
-    activated. The response concerns the Task, not the registration. Only a
-    malformed Task or an unknown identifier is refused.
+    Records a lifecycle Task against the registration: registered, rejected,
+    activated or deactivated. The response concerns the Task, not the
+    registration. Only a malformed Task or an unknown identifier is refused.
   parameters:
     - $ref: '../pathParameters/RegistrationId.yaml'
     - $ref: '../headers/request/XRequestID.yaml'
@@ -22,7 +22,10 @@ post:
           status: accepted
           intent: order
           businessStatus:
-            text: registered
+            coding:
+              - system: 'https://fhir.healthstore.nhs.uk/CodeSystem/registration-business-status'
+                code: registered
+                display: Registered
   responses:
     '200':
       description: |
