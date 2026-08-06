@@ -2,6 +2,7 @@ name: API checks
 
 on:
   push:
+  workflow_dispatch:
 
 jobs:
   lint:
