@@ -20,6 +20,7 @@ import uk.nhs.healthstore.dtx.simulator.api.model.RegistrationServiceRequest;
 import uk.nhs.healthstore.dtx.simulator.api.model.RequestPriority;
 import uk.nhs.healthstore.dtx.simulator.store.RegistrationStore;
 import uk.nhs.healthstore.dtx.simulator.supplier.SupplierGateway;
+import uk.nhs.healthstore.dtx.simulator.web.TokenIssuer;
 
 @RestController
 @RequestMapping("/_simulator")
@@ -28,13 +29,19 @@ public class ControlController {
     private final RegistrationStore store;
     private final SupplierGateway gateway;
     private final FixtureLoader fixtures;
+    private final TokenIssuer issuer;
     private final Clock clock;
 
     public ControlController(
-            RegistrationStore store, SupplierGateway gateway, FixtureLoader fixtures, Clock clock) {
+            RegistrationStore store,
+            SupplierGateway gateway,
+            FixtureLoader fixtures,
+            TokenIssuer issuer,
+            Clock clock) {
         this.store = store;
         this.gateway = gateway;
         this.fixtures = fixtures;
+        this.issuer = issuer;
         this.clock = clock;
     }
 
@@ -86,8 +93,9 @@ public class ControlController {
 
     @PostMapping("/registrations/{id}/status/{status}")
     public Map<String, Object> setStatus(@PathVariable UUID id, @PathVariable String status) {
-        store.find(id).orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
-        store.setStatus(id, RegistrationServiceRequest.StatusEnum.fromValue(status));
+        if (!store.setStatus(id, RegistrationServiceRequest.StatusEnum.fromValue(status))) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND);
+        }
         return Map.of("registrationId", id.toString(), "status", status);
     }
 
@@ -100,6 +108,7 @@ public class ControlController {
     public Map<String, Object> reset() {
         store.reset();
         gateway.reset();
+        issuer.reset();
         return Map.of("reset", true);
     }
 

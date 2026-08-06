@@ -19,10 +19,10 @@ import org.springframework.core.io.Resource;
 import org.springframework.core.io.support.PathMatchingResourcePatternResolver;
 import org.springframework.stereotype.Component;
 import uk.nhs.healthstore.dtx.simulator.api.model.ContainedPatientTelecomInner;
-import uk.nhs.healthstore.dtx.simulator.api.model.ContainedPatientTelecomInnerOneOf;
-import uk.nhs.healthstore.dtx.simulator.api.model.ContainedPatientTelecomInnerOneOf1;
+import uk.nhs.healthstore.dtx.simulator.api.model.EmailContactPoint;
 import uk.nhs.healthstore.dtx.simulator.api.model.OdsOrganizationIdentifier;
 import uk.nhs.healthstore.dtx.simulator.api.model.OdsReference;
+import uk.nhs.healthstore.dtx.simulator.api.model.PhoneContactPoint;
 import uk.nhs.healthstore.dtx.simulator.api.model.RegistrationServiceRequest;
 import uk.nhs.healthstore.dtx.simulator.api.model.RequestPriority;
 
@@ -32,34 +32,10 @@ import uk.nhs.healthstore.dtx.simulator.api.model.RequestPriority;
 @Component
 public class FixtureLoader {
 
-    private final ObjectMapper mapper;
+    private final ObjectMapper mapper = wireMapper();
     private final Map<String, JsonNode> fixtures = new TreeMap<>();
 
     public FixtureLoader() throws IOException {
-        // The generated telecom type is a oneOf marker interface whose email
-        // and phone variants share the same property names, so the variant is
-        // chosen by the system value.
-        SimpleModule telecom = new SimpleModule().addDeserializer(
-                ContainedPatientTelecomInner.class,
-                new JsonDeserializer<>() {
-                    @Override
-                    public ContainedPatientTelecomInner deserialize(JsonParser p, DeserializationContext ctxt)
-                            throws IOException {
-                        ObjectMapper codec = (ObjectMapper) p.getCodec();
-                        JsonNode node = codec.readTree(p);
-                        String system = node.path("system").asText();
-                        return switch (system) {
-                            case "email" -> codec.treeToValue(node, ContainedPatientTelecomInnerOneOf.class);
-                            case "phone" -> codec.treeToValue(node, ContainedPatientTelecomInnerOneOf1.class);
-                            default -> throw new IllegalArgumentException(
-                                    "telecom.system must be email or phone, was " + system);
-                        };
-                    }
-                });
-        this.mapper = new ObjectMapper()
-                .registerModule(new JavaTimeModule())
-                .registerModule(telecom);
-
         for (Resource resource : new PathMatchingResourcePatternResolver()
                 .getResources("classpath:fixtures/*.json")) {
             String name = resource.getFilename().replaceFirst("\\.json$", "");
@@ -70,6 +46,32 @@ public class FixtureLoader {
         if (fixtures.isEmpty()) {
             throw new IllegalStateException("No fixtures found on classpath:fixtures/*.json");
         }
+    }
+
+    // The generated telecom oneOf is a bare marker interface, so the variant
+    // is chosen here by the system value. A schema discriminator would let
+    // the generator do this, but it mishandles enum discriminator properties.
+    public static ObjectMapper wireMapper() {
+        SimpleModule telecom = new SimpleModule().addDeserializer(
+                ContainedPatientTelecomInner.class,
+                new JsonDeserializer<>() {
+                    @Override
+                    public ContainedPatientTelecomInner deserialize(JsonParser p, DeserializationContext ctxt)
+                            throws IOException {
+                        ObjectMapper codec = (ObjectMapper) p.getCodec();
+                        JsonNode node = codec.readTree(p);
+                        String system = node.path("system").asText();
+                        return switch (system) {
+                            case "email" -> codec.treeToValue(node, EmailContactPoint.class);
+                            case "phone" -> codec.treeToValue(node, PhoneContactPoint.class);
+                            default -> throw new IllegalArgumentException(
+                                    "telecom.system must be email or phone, was " + system);
+                        };
+                    }
+                });
+        return new ObjectMapper()
+                .registerModule(new JavaTimeModule())
+                .registerModule(telecom);
     }
 
     public List<String> names() {

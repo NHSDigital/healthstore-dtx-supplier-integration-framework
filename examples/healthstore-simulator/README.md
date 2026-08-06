@@ -83,7 +83,7 @@ curl 'http://localhost:8090/registrations/{id}' \
 curl -X POST 'http://localhost:8090/registrations/{id}/tasks' \
   -H "Authorization: Bearer $TOKEN" \
   -H 'Content-Type: application/fhir+json' -H 'X-Request-ID: <uuid>' \
-  -d '{"resourceType":"Task","status":"accepted","intent":"order","businessStatus":{"text":"registered"}}'
+  -d '{"resourceType":"Task","status":"accepted","intent":"order","businessStatus":{"coding":[{"system":"https://fhir.healthstore.nhs.uk/CodeSystem/registration-business-status","code":"registered"}]}}'
 curl 'http://localhost:8090/_simulator/state'
 ```
 
@@ -109,6 +109,12 @@ clones a fixture, assigns a new registration identifier and sets
 `authoredOn`; `priority` and `performer` override the fixture's values when
 given. Fixtures set `performer` to the first configured supplier's ODS code.
 New patients are added as new files.
+
+The patient data is synthetic: NHS numbers come from the PDS test range
+(`900000000x`, mod-11 valid), phone numbers from the Ofcom drama range
+(`07700 900xxx`), and email addresses use `example.com`. The GP and requester
+ODS codes are real-format placeholders whose display names are fictitious;
+they do not refer to participating organisations.
 
 ## Configuration
 

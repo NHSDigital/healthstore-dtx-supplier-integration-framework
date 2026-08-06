@@ -1,5 +1,7 @@
 package uk.nhs.healthstore.dtx.simulator.web;
 
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
 import java.time.Clock;
 import java.time.Instant;
 import java.util.Map;
@@ -28,13 +30,19 @@ public class TokenIssuer {
     }
 
     public Optional<Token> issue(String clientId, String clientSecret) {
+        Instant now = Instant.now(clock);
+        tokens.entrySet().removeIf(e -> !now.isBefore(e.getValue().expiry()));
         return settings.suppliers().stream()
-                .filter(s -> s.clientId().equals(clientId) && s.clientSecret().equals(clientSecret))
+                .filter(s -> {
+                    boolean idOk = matches(s.clientId(), clientId);
+                    boolean secretOk = matches(s.clientSecret(), clientSecret);
+                    return idOk && secretOk;
+                })
                 .findFirst()
                 .map(s -> {
                     String token = UUID.randomUUID().toString();
                     tokens.put(token, new Issued(
-                            s.odsCode(), Instant.now(clock).plusSeconds(settings.tokenTtlSeconds())));
+                            s.odsCode(), now.plusSeconds(settings.tokenTtlSeconds())));
                     return new Token(token, settings.tokenTtlSeconds());
                 });
     }
@@ -43,5 +51,15 @@ public class TokenIssuer {
         return Optional.ofNullable(tokens.get(token))
                 .filter(issued -> Instant.now(clock).isBefore(issued.expiry()))
                 .map(Issued::odsCode);
+    }
+
+    public void reset() {
+        tokens.clear();
+    }
+
+    private static boolean matches(String expected, String provided) {
+        return provided != null && MessageDigest.isEqual(
+                expected.getBytes(StandardCharsets.UTF_8),
+                provided.getBytes(StandardCharsets.UTF_8));
     }
 }

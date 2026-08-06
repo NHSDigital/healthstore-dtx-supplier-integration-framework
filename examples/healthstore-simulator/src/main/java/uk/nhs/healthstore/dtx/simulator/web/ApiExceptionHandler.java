@@ -11,6 +11,7 @@ import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.method.annotation.HandlerMethodValidationException;
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 import uk.nhs.healthstore.dtx.simulator.api.model.OperationOutcome;
 import uk.nhs.healthstore.dtx.simulator.api.model.OperationOutcomeIssueInner;
 import uk.nhs.healthstore.dtx.simulator.api.model.OperationOutcomeIssueInnerDetails;
@@ -71,6 +72,14 @@ public class ApiExceptionHandler {
                 OperationOutcomeIssueInner.CodeEnum.REQUIRED,
                 OperationOutcomeIssueInnerDetailsCodingInner.CodeEnum.MISSING_PARAMETER,
                 e.getParameterName() + " is required", e.getParameterName());
+    }
+
+    @ExceptionHandler(MethodArgumentTypeMismatchException.class)
+    public ResponseEntity<OperationOutcome> typeMismatch(MethodArgumentTypeMismatchException e) {
+        return outcome(HttpStatus.BAD_REQUEST,
+                OperationOutcomeIssueInner.CodeEnum.VALUE,
+                OperationOutcomeIssueInnerDetailsCodingInner.CodeEnum.INVALID_VALUE,
+                e.getName() + " is not valid", e.getName());
     }
 
     @ExceptionHandler(HandlerMethodValidationException.class)

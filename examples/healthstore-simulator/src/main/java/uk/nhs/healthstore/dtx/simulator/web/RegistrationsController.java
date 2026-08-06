@@ -86,9 +86,9 @@ public class RegistrationsController implements RegistrationsApi, LifecycleApi {
     @Override
     public ResponseEntity<Void> postRegistrationTask(
             UUID registrationId, UUID xRequestID, LifecycleTask lifecycleTask, String xCorrelationID) {
-        store.find(registrationId, callerOds())
-                .orElseThrow(() -> new NotKnownException("The registration is not known"));
-        store.recordTask(registrationId, lifecycleTask, xRequestID, OffsetDateTime.now(clock));
+        if (!store.recordTask(registrationId, callerOds(), lifecycleTask, xRequestID, OffsetDateTime.now(clock))) {
+            throw new NotKnownException("The registration is not known");
+        }
         return ResponseEntity.ok().build();
     }
 

@@ -1,5 +1,7 @@
 package uk.nhs.healthstore.dtx.referencesupplier;
 
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
 import java.time.Duration;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseEntity;
@@ -35,7 +37,9 @@ public class TokenController implements AuthenticationApi {
         if (!"client_credentials".equals(grantType)) {
             throw new OAuthError(PostOAuthToken400Response.ErrorEnum.UNSUPPORTED_GRANT_TYPE);
         }
-        if (!this.clientId.equals(clientId) || !this.clientSecret.equals(clientSecret)) {
+        boolean idOk = matches(this.clientId, clientId);
+        boolean secretOk = matches(this.clientSecret, clientSecret);
+        if (!(idOk && secretOk)) {
             throw new OAuthError(PostOAuthToken400Response.ErrorEnum.INVALID_CLIENT);
         }
         return ResponseEntity.ok(new PostOAuthToken200Response(
@@ -61,5 +65,11 @@ public class TokenController implements AuthenticationApi {
     ResponseEntity<PostOAuthToken400Response> missingParameter() {
         return ResponseEntity.badRequest()
                 .body(new PostOAuthToken400Response(PostOAuthToken400Response.ErrorEnum.INVALID_REQUEST));
+    }
+
+    private static boolean matches(String expected, String provided) {
+        return provided != null && MessageDigest.isEqual(
+                expected.getBytes(StandardCharsets.UTF_8),
+                provided.getBytes(StandardCharsets.UTF_8));
     }
 }

@@ -1,5 +1,6 @@
 package uk.nhs.healthstore.dtx.simulator.store;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -10,6 +11,7 @@ import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.springframework.stereotype.Component;
+import uk.nhs.healthstore.dtx.simulator.FixtureLoader;
 import uk.nhs.healthstore.dtx.simulator.api.model.LifecycleTask;
 import uk.nhs.healthstore.dtx.simulator.api.model.RegistrationServiceRequest;
 
@@ -17,6 +19,8 @@ import uk.nhs.healthstore.dtx.simulator.api.model.RegistrationServiceRequest;
 public class RegistrationStore {
 
     public static final class Registration {
+        private static final ObjectMapper MAPPER = FixtureLoader.wireMapper();
+
         private final RegistrationServiceRequest resource;
         private final String cohort;
         private int statusSeq;
@@ -27,8 +31,12 @@ public class RegistrationStore {
             this.cohort = cohort;
         }
 
+        // A copy, taken under this registration's lock: the live resource is
+        // mutated by setStatus after this Registration has escaped the store.
         public RegistrationServiceRequest resource() {
-            return resource;
+            synchronized (this) {
+                return MAPPER.convertValue(resource, RegistrationServiceRequest.class);
+            }
         }
 
         public String cohort() {
@@ -99,20 +107,32 @@ public class RegistrationStore {
                 .anyMatch(p -> p.getIdentifier().getValue().equals(callerOds));
     }
 
-    public synchronized boolean recordTask(UUID id, LifecycleTask task, UUID xRequestId, OffsetDateTime now) {
+    // Returns false when the registration is unknown or outside the caller's
+    // tenancy. A repeat of an already-recorded X-Request-ID is dropped and
+    // still counts as known.
+    public synchronized boolean recordTask(
+            UUID id, String callerOds, LifecycleTask task, UUID xRequestId, OffsetDateTime now) {
         Registration registration = registrations.get(id);
-        boolean repeat = registration.tasks.stream().anyMatch(t -> t.xRequestId().equals(xRequestId));
-        if (repeat) {
+        if (registration == null || !visibleTo(registration, callerOds)) {
             return false;
         }
-        registration.tasks.add(new ReceivedTask(task, registration.statusSeq, xRequestId, now));
+        boolean repeat = registration.tasks.stream().anyMatch(t -> t.xRequestId().equals(xRequestId));
+        if (!repeat) {
+            registration.tasks.add(new ReceivedTask(task, registration.statusSeq, xRequestId, now));
+        }
         return true;
     }
 
-    public synchronized void setStatus(UUID id, RegistrationServiceRequest.StatusEnum status) {
+    public synchronized boolean setStatus(UUID id, RegistrationServiceRequest.StatusEnum status) {
         Registration registration = registrations.get(id);
-        registration.resource.setStatus(status);
+        if (registration == null) {
+            return false;
+        }
+        synchronized (registration) {
+            registration.resource.setStatus(status);
+        }
         registration.statusSeq++;
+        return true;
     }
 
     public synchronized void reset() {

@@ -14,8 +14,10 @@ public class TokenStore {
     private final Map<String, Instant> tokens = new ConcurrentHashMap<>();
 
     public String issue(Duration ttl) {
+        Instant now = Instant.now();
+        tokens.values().removeIf(expiry -> now.isAfter(expiry));
         String token = UUID.randomUUID().toString();
-        tokens.put(token, Instant.now().plus(ttl));
+        tokens.put(token, now.plus(ttl));
         return token;
     }
 

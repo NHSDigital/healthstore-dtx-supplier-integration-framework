@@ -59,45 +59,8 @@ properties:
       optional on phone.
     items:
       oneOf:
-        - type: object
-          required:
-            - system
-            - value
-            - use
-          properties:
-            system:
-              type: string
-              enum:
-                - email
-            value:
-              type: string
-              format: email
-            use:
-              type: string
-              enum:
-                - home
-        - type: object
-          required:
-            - system
-            - value
-          properties:
-            system:
-              type: string
-              enum:
-                - phone
-            value:
-              type: string
-              pattern: '^\+[1-9]\d{1,14}$'
-              description: E.164.
-            use:
-              type: string
-              enum:
-                - home
-                - work
-                - temp
-                - old
-                - mobile
-                - billing
+        - $ref: './EmailContactPoint.yaml'
+        - $ref: './PhoneContactPoint.yaml'
   gender:
     type: string
     enum:
