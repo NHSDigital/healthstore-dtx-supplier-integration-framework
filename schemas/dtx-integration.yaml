@@ -147,7 +147,7 @@ components:
           enum: [fatal, error, warning, information]
         code:
           type: string
-          enum: [required, value, structure, exception, informational]
+          enum: [required, value, structure, duplicate, exception, informational]
         diagnostics:
           type: string
         expression:
