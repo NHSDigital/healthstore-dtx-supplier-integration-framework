@@ -19,6 +19,17 @@ Runnable examples of both sides of the registration contract:
   Health Store stand-in that sends registration requests and serves the
   Registrations API; see its [README](examples/healthstore-simulator/README.md).
 
+## Validating the specs
+
+The OpenAPI documents under `specification/` and `schemas/` are linted with
+[Spectral](https://github.com/stoplightio/spectral), configured in
+`.spectral.yaml`.
+
+```sh
+npm install
+npm run lint:spec
+```
+
 ## How to contribute
 
 - NHS Digital: raise an issue or open a PR; see `.github/PULL_REQUEST_TEMPLATE.md`.

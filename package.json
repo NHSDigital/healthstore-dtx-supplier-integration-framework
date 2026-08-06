@@ -1,0 +1,12 @@
+{
+  "name": "healthstore-dtx-supplier-integration-framework",
+  "private": true,
+  "version": "0.0.0",
+  "description": "Contract repository for DTx-supplier integration with the Health Store: specs, schemas, examples and tests.",
+  "scripts": {
+    "lint:spec": "spectral lint specification/healthstore-api.yaml specification/supplier-api.yaml schemas/dtx-integration.yaml"
+  },
+  "devDependencies": {
+    "@stoplight/spectral-cli": "^6.16.3"
+  }
+}
