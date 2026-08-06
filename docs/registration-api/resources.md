@@ -64,7 +64,7 @@ Interim, until APIM onboarding completes. AWS Cognito.
 |---|---|
 | Register | Credentials issued by HealthStore |
 | Grant | OAuth 2.0 `client_credentials` |
-| Token endpoint | `/oauth2/token`, on the same host as the API |
+| Token endpoint | `/oauth2/token`, on the same host as the API. The auth provider's endpoint, carried in the spec only as `tokenUrl` |
 | Client authentication | `client_secret_post` |
 | Token | Bearer, JWT |
 | Scopes | TBD |

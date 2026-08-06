@@ -87,6 +87,7 @@ properties:
                       - CONFLICTING_VALUES
                       - REFERENCE_NOT_FOUND
                       - NO_ACCESS
+                      - TOO_MANY_REQUESTS
                       - SYSTEM_UNAVAILABLE
                   display:
                     type: string

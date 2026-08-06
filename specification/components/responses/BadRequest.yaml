@@ -34,6 +34,6 @@ content:
           details:
             coding:
               - code: INVALID_CODE
-          diagnostics: emergency is not in the request-priority value set
+          diagnostics: urgent is not in the constrained priority set (routine, asap)
           expression:
             - Task.priority

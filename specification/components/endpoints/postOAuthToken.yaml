@@ -55,7 +55,8 @@ post:
             expires_in: 3600
     '400':
       description: |
-        An OAuth 2.0 error response, not an OperationOutcome.
+        An OAuth 2.0 error response. Malformed request, unsupported grant,
+        or failed client authentication with client_secret_post.
       content:
         application/json:
           schema:
@@ -74,10 +75,10 @@ post:
               error_description:
                 type: string
           example:
-            error: invalid_client
+            error: invalid_request
     '401':
       description: |
-        An OAuth 2.0 error response, not an OperationOutcome.
+        An OAuth 2.0 error response. Client authentication failed.
       content:
         application/json:
           schema:
@@ -87,6 +88,8 @@ post:
             properties:
               error:
                 type: string
+                enum:
+                  - invalid_client
               error_description:
                 type: string
           example:

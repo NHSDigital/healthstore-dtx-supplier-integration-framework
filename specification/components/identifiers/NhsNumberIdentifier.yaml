@@ -15,7 +15,9 @@ properties:
   value:
     type: string
     pattern: '^\d{10}$'
-    description: 10 digits with a mod-11 check digit.
+    description: |
+      10 digits carrying a mod-11 check digit. The schema checks format
+      only; the server validates the check digit.
     example: '9000000009'
   extension:
     type: array

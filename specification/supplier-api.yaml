@@ -6,8 +6,13 @@ info:
     Implemented by third party digital therapeutics platforms and called by NHS HealthStore.
     Receives registration request Tasks naming what to retrieve from the
     Registrations API.
+  contact:
+    name: NHS HealthStore
+  license:
+    name: MIT
+    url: https://github.com/NHSDigital/healthstore-dtx-supplier-integration-framework/blob/main/LICENCE.md
 servers:
-  - url: https://dtx-platform.example.com
+  - url: https://dtx-platform.example
     description: Representative. Base paths are not yet set.
 tags:
   - name: authentication
