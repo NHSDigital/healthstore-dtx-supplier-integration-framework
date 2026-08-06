@@ -32,7 +32,8 @@ it concerns carry the same value.
 | `process-specific-service-request` | required | must be absent |
 | `process-available-service-requests` | must be absent | required |
 
-Where `code`, `focus` and `groupIdentifier` disagree, the request is rejected.
+Where `code`, `focus` and `groupIdentifier` disagree, the request fails the
+schema and is rejected with a 400.
 
 ### Required by this contract
 

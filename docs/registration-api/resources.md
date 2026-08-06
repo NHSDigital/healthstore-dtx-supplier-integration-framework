@@ -21,7 +21,7 @@ Implemented by HealthStore, called by the platform.
 |---|---|---|---|
 | `GET` | `/registrations/{registration-id}` | | The `ServiceRequest` |
 | `GET` | `/registrations?cohort={cohort-id}&_count={n}&page={p}` | | A `searchset` Bundle of ServiceRequests |
-| `POST` | `/registrations/{registration-id}/tasks` | A lifecycle `Task`: accepted, rejected, activated | Not yet defined |
+| `POST` | `/registrations/{registration-id}/tasks` | A lifecycle `Task`: registered, rejected, activated, deactivated | Not yet defined |
 
 ### Cohort retrieval
 
@@ -105,11 +105,13 @@ error. The token endpoints, `/oauth/token` on the supplier API and
 | An element carries a value outside its value set | 400 | `INVALID_CODE` |
 | A required header is absent | 400 | `MISSING_HEADER` |
 | A required query parameter is absent | 400 | `MISSING_PARAMETER` |
-| `code`, `focus` and `groupIdentifier` disagree | 422 | `CONFLICTING_VALUES` |
 | The registration or cohort is not known, or is outside the caller's tenancy | 404 | `REFERENCE_NOT_FOUND` |
 | No token, or a token that is invalid or expired | 401 | `NO_ACCESS` |
 | Rate exceeded | 429 | `TOO_MANY_REQUESTS` |
 | Unavailable | 503 | `SYSTEM_UNAVAILABLE` |
+
+A registration request whose `code`, `focus` and `groupIdentifier` disagree
+fails the request schema and draws a 400.
 
 A platform that cannot accept a registration request at all responds with one of
 the above rather than a Task.

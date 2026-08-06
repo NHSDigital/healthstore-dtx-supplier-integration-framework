@@ -84,7 +84,6 @@ properties:
                       - INVALID_CODE
                       - MISSING_HEADER
                       - MISSING_PARAMETER
-                      - CONFLICTING_VALUES
                       - REFERENCE_NOT_FOUND
                       - NO_ACCESS
                       - TOO_MANY_REQUESTS
