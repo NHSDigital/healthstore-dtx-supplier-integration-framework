@@ -8,6 +8,7 @@ const path = require('path');
 
 const ROOT = path.resolve(__dirname, '../../..');
 const PRISM = path.join(ROOT, 'node_modules/.bin/prism');
+const PID_FILE = path.join(os.tmpdir(), 'integration-pids.json');
 
 // Real services at 8080/8090. Proxy ports use 4012/4013.
 const PORTS = {
@@ -17,21 +18,13 @@ const PORTS = {
   supplierProxy: 4013,    // prism proxy → supplier    (option 1: supplier-api contract)
 };
 
-const PID_FILE = path.join(os.tmpdir(), 'integration-pids.json');
-
 // Kill anything left over from a previous run that crashed before teardown ran.
 function killStaleProcesses() {
   if (!fs.existsSync(PID_FILE)) return;
-  let info;
   try {
-    info = JSON.parse(fs.readFileSync(PID_FILE, 'utf8'));
-  } catch {
-    fs.unlinkSync(PID_FILE);
-    return;
-  }
-  for (const pid of [info.supplierProxy, info.healthstoreProxy, info.simulator, info.supplier]) {
-    if (pid) { try { process.kill(pid, 'SIGKILL'); } catch { /* already gone */ } }
-  }
+    const { services } = JSON.parse(fs.readFileSync(PID_FILE, 'utf8'));
+    for (const { pid } of services) { try { process.kill(pid, 'SIGKILL'); } catch { /* already gone */ } }
+  } catch { /* corrupt pid file — nothing usable to clean up */ }
   fs.unlinkSync(PID_FILE);
 }
 
@@ -71,12 +64,15 @@ function waitForPort(port, timeoutMs = 90_000) {
   });
 }
 
-function spawnLogged(cmd, args, logFile) {
+// Spawns the process and returns everything teardown needs to stop it and
+// inspect its output — the single record shared by the PID file.
+function startService({ name, port, cmd, args }) {
+  const logFile = path.join(os.tmpdir(), `${name}.log`);
   const proc = spawn(cmd, args, { stdio: ['ignore', 'pipe', 'pipe'] });
   const ws = fs.createWriteStream(logFile);
   proc.stdout.pipe(ws);
   proc.stderr.pipe(ws);
-  return proc;
+  return { name, port, pid: proc.pid, logFile };
 }
 
 module.exports = async function globalSetup() {
@@ -93,61 +89,65 @@ module.exports = async function globalSetup() {
   const supplierJar = findJar(path.join(ROOT, 'examples/reference-supplier/build/libs'));
   const simulatorJar = findJar(path.join(ROOT, 'examples/healthstore-simulator/build/libs'));
 
-  const healthstoreProxyLog = path.join(os.tmpdir(), 'prism-healthstore.log');
-  const supplierProxyLog = path.join(os.tmpdir(), 'prism-supplier.log');
-  fs.writeFileSync(healthstoreProxyLog, '');
-  fs.writeFileSync(supplierProxyLog, '');
-
   killStaleProcesses();
   assertPortsFree(Object.values(PORTS));
 
   process.stdout.write('\n=== Starting services ===\n');
 
-  const supplier = spawnLogged('java', ['-jar', supplierJar], path.join(os.tmpdir(), 'reference-supplier.log'));
-
-  // Route simulator's outbound supplier calls through the supplier prism proxy.
-  const simulator = spawnLogged('java', [
-    '-jar', simulatorJar,
-    `--simulator.supplier-base-url=http://localhost:${PORTS.supplierProxy}`,
-    `--simulator.public-base-url=http://localhost:${PORTS.simulator}`,
-  ], path.join(os.tmpdir(), 'healthstore-simulator.log'));
-
-  // No --errors: it would block violating requests with only a generic error
-  // (prism drops the field-level [VALIDATOR] detail once it short-circuits to
-  // block). Letting requests through and catching violations via the log in
-  // global-teardown.js keeps the full diagnostic detail for every violation,
-  // including ones on calls the tests don't directly assert on.
-  const healthstoreProxy = spawnLogged(PRISM, [
-    'proxy',
-    path.join(ROOT, 'specification/healthstore-api.yaml'),
-    `http://localhost:${PORTS.simulator}`,
-    '--port', String(PORTS.healthstoreProxy),
-    '--host', '127.0.0.1',
-  ], healthstoreProxyLog);
-
-  const supplierProxy = spawnLogged(PRISM, [
-    'proxy',
-    path.join(ROOT, 'specification/supplier-api.yaml'),
-    `http://localhost:${PORTS.supplier}`,
-    '--port', String(PORTS.supplierProxy),
-    '--host', '127.0.0.1',
-  ], supplierProxyLog);
+  // No --errors on the proxies: it would block violating requests with only a
+  // generic error (prism drops the field-level [VALIDATOR] detail once it
+  // short-circuits to block). Letting requests through and catching violations
+  // via the log in global-teardown.js keeps the full diagnostic detail for
+  // every violation, including ones on calls the tests don't directly assert on.
+  const services = [
+    {
+      name: 'reference-supplier',
+      port: PORTS.supplier,
+      cmd: 'java',
+      args: ['-jar', supplierJar],
+    },
+    {
+      // Routes its outbound supplier calls through the supplier prism proxy.
+      name: 'healthstore-simulator',
+      port: PORTS.simulator,
+      cmd: 'java',
+      args: [
+        '-jar', simulatorJar,
+        `--simulator.supplier-base-url=http://localhost:${PORTS.supplierProxy}`,
+        `--simulator.public-base-url=http://localhost:${PORTS.simulator}`,
+      ],
+    },
+    {
+      name: 'healthstore-proxy',
+      port: PORTS.healthstoreProxy,
+      cmd: PRISM,
+      args: [
+        'proxy',
+        path.join(ROOT, 'specification/healthstore-api.yaml'),
+        `http://localhost:${PORTS.simulator}`,
+        '--port', String(PORTS.healthstoreProxy),
+        '--host', '127.0.0.1',
+      ],
+    },
+    {
+      name: 'supplier-proxy',
+      port: PORTS.supplierProxy,
+      cmd: PRISM,
+      args: [
+        'proxy',
+        path.join(ROOT, 'specification/supplier-api.yaml'),
+        `http://localhost:${PORTS.supplier}`,
+        '--port', String(PORTS.supplierProxy),
+        '--host', '127.0.0.1',
+      ],
+    },
+  ].map(startService);
 
   process.stdout.write('Waiting for all services...\n');
-  await Promise.all([
-    waitForPort(PORTS.supplier).then(() => process.stdout.write('  reference-supplier ready\n')),
-    waitForPort(PORTS.simulator).then(() => process.stdout.write('  healthstore-simulator ready\n')),
-    waitForPort(PORTS.healthstoreProxy).then(() => process.stdout.write('  healthstore-proxy ready\n')),
-    waitForPort(PORTS.supplierProxy).then(() => process.stdout.write('  supplier-proxy ready\n')),
-  ]);
+  await Promise.all(services.map(({ name, port }) =>
+    waitForPort(port).then(() => process.stdout.write(`  ${name} ready\n`))
+  ));
 
-  fs.writeFileSync(PID_FILE, JSON.stringify({
-    supplier: supplier.pid,
-    simulator: simulator.pid,
-    healthstoreProxy: healthstoreProxy.pid,
-    supplierProxy: supplierProxy.pid,
-    healthstoreProxyLog,
-    supplierProxyLog,
-  }));
+  fs.writeFileSync(PID_FILE, JSON.stringify({ services }));
   process.env.INTEGRATION_PID_FILE = PID_FILE;
 };

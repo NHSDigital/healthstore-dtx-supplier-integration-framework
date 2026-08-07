@@ -22,21 +22,18 @@ module.exports = async function globalTeardown() {
   const pidFile = process.env.INTEGRATION_PID_FILE;
   if (!pidFile || !fs.existsSync(pidFile)) return;
 
-  const info = JSON.parse(fs.readFileSync(pidFile, 'utf8'));
+  const { services } = JSON.parse(fs.readFileSync(pidFile, 'utf8'));
 
   // Shut down in reverse start order.
-  for (const pid of [info.supplierProxy, info.healthstoreProxy, info.simulator, info.supplier]) {
-    if (pid) killSilently(pid);
-  }
-
-  const violations = [
-    ...extractViolations('healthstore-proxy', info.healthstoreProxyLog),
-    ...extractViolations('supplier-proxy', info.supplierProxyLog),
-  ];
+  for (const { pid } of [...services].reverse()) killSilently(pid);
 
   // Requests aren't blocked at the proxy (see global-setup.js), so this log scrape
   // is the only thing that catches a spec violation — including on calls the
   // tests never directly assert on, like the simulator's own outbound requests.
+  const violations = services
+    .filter(({ name }) => name.endsWith('-proxy'))
+    .flatMap(({ name, logFile }) => extractViolations(name, logFile));
+
   if (violations.length > 0) {
     process.stderr.write(`\n⚠️  Prism detected spec violations:\n\n${violations.join('\n\n')}\n\n`);
     process.exitCode = 1;
