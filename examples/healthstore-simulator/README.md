@@ -18,6 +18,12 @@ The simulator listens on port 8090. Registration requests are sent to
 `simulator.supplier-base-url`, default `http://localhost:8080`, where the
 reference supplier runs.
 
+## Testing
+
+This app is built and run automatically — alongside `reference-supplier` and a
+Prism proxy in front of each — by the contract-validation and integration
+suites in `../../tests`. See [`../../tests/README.md`](../../tests/README.md).
+
 ## Contract surface
 
 As specified in `../../specification/healthstore-api.yaml`:

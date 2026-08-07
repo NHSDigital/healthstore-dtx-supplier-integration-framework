@@ -6,7 +6,7 @@ const net = require('net');
 const os = require('os');
 const path = require('path');
 
-const ROOT = path.resolve(__dirname, '../../..');
+const ROOT = path.resolve(__dirname, '../..');
 const PRISM = path.join(ROOT, 'node_modules/.bin/prism');
 const PID_FILE = path.join(os.tmpdir(), 'integration-pids.json');
 
