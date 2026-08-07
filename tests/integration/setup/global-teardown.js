@@ -6,25 +6,16 @@ function killSilently(pid) {
   try { process.kill(pid, 'SIGTERM'); } catch { /* already gone */ }
 }
 
-// Prism outputs NDJSON when not attached to a TTY. Look for entries with a
-// `violations` array (spec violations) or level >= 50 (errors).
+// prism-cli always pretty-prints its logs via signale (never NDJSON, TTY or not).
+// In proxy mode it only logs a [VALIDATOR] line when a request/response actually
+// violates the spec (nothing is logged for a clean one), so this is safe as a
+// pure violation filter — one line per broken schema rule.
 function extractViolations(name, logFile) {
   if (!fs.existsSync(logFile)) return [];
-  const found = [];
-  for (const line of fs.readFileSync(logFile, 'utf8').split('\n')) {
-    const trimmed = line.trim();
-    if (!trimmed) continue;
-    try {
-      const entry = JSON.parse(trimmed);
-      if ((entry.violations && entry.violations.length > 0) || entry.level >= 50) {
-        found.push(`[${name}] ${JSON.stringify(entry, null, 2)}`);
-      }
-    } catch {
-      // Pretty-printed fallback: flag lines with prism's [VALIDATOR] prefix.
-      if (/\[VALIDATOR\]/.test(trimmed)) found.push(`[${name}] ${trimmed}`);
-    }
-  }
-  return found;
+  return fs.readFileSync(logFile, 'utf8')
+    .split('\n')
+    .filter(line => /\[VALIDATOR\]/.test(line))
+    .map(line => `[${name}] ${line.trim()}`);
 }
 
 module.exports = async function globalTeardown() {
@@ -43,8 +34,13 @@ module.exports = async function globalTeardown() {
     ...extractViolations('supplier-proxy', info.supplierProxyLog),
   ];
 
-  // Log violations but don't fail — fixing the implementations is for the developer.
+  // Requests aren't blocked at the proxy (see global-setup.js), so this log scrape
+  // is the only thing that catches a spec violation — including on calls the
+  // tests never directly assert on, like the simulator's own outbound requests.
   if (violations.length > 0) {
-    process.stderr.write(`\n⚠️  Prism detected spec violations (fix the implementations):\n\n${violations.join('\n\n')}\n\n`);
+    process.stderr.write(`\n⚠️  Prism detected spec violations:\n\n${violations.join('\n\n')}\n\n`);
+    process.exitCode = 1;
   }
+
+  fs.unlinkSync(pidFile);
 };

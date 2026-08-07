@@ -9,14 +9,46 @@ const path = require('path');
 const ROOT = path.resolve(__dirname, '../../..');
 const PRISM = path.join(ROOT, 'node_modules/.bin/prism');
 
-// Real services at 8080/8090. Proxy ports use 4012/4013 so they don't clash
-// with the npm mock:healthstore (4010) and mock:supplier (4011) scripts.
+// Real services at 8080/8090. Proxy ports use 4012/4013.
 const PORTS = {
   supplier: 8080,
   simulator: 8090,
   healthstoreProxy: 4012, // prism proxy → simulator  (option 2: healthstore-api contract)
   supplierProxy: 4013,    // prism proxy → supplier    (option 1: supplier-api contract)
 };
+
+const PID_FILE = path.join(os.tmpdir(), 'integration-pids.json');
+
+// Kill anything left over from a previous run that crashed before teardown ran.
+function killStaleProcesses() {
+  if (!fs.existsSync(PID_FILE)) return;
+  let info;
+  try {
+    info = JSON.parse(fs.readFileSync(PID_FILE, 'utf8'));
+  } catch {
+    fs.unlinkSync(PID_FILE);
+    return;
+  }
+  for (const pid of [info.supplierProxy, info.healthstoreProxy, info.simulator, info.supplier]) {
+    if (pid) { try { process.kill(pid, 'SIGKILL'); } catch { /* already gone */ } }
+  }
+  fs.unlinkSync(PID_FILE);
+}
+
+// Fail fast with a clear message rather than killing whatever else is bound to the port.
+function assertPortsFree(ports) {
+  for (const port of ports) {
+    let inUse = true;
+    try {
+      execSync(`lsof -ti:${port}`, { stdio: ['ignore', 'pipe', 'ignore'] });
+    } catch {
+      inUse = false; // lsof exits non-zero when nothing is listening
+    }
+    if (inUse) {
+      throw new Error(`Port ${port} is already in use — stop whatever's running there before running the integration tests.`);
+    }
+  }
+}
 
 function findJar(libsDir) {
   return fs.readdirSync(libsDir)
@@ -66,22 +98,25 @@ module.exports = async function globalSetup() {
   fs.writeFileSync(healthstoreProxyLog, '');
   fs.writeFileSync(supplierProxyLog, '');
 
-  // Free any stale processes on the ports we need before starting.
-  for (const port of Object.values(PORTS)) {
-    execSync(`lsof -ti:${port} | xargs kill -9 2>/dev/null; true`, { shell: true });
-  }
+  killStaleProcesses();
+  assertPortsFree(Object.values(PORTS));
 
   process.stdout.write('\n=== Starting services ===\n');
 
-  const supplier = spawnLogged('java', ['-jar', supplierJar], '/tmp/reference-supplier.log');
+  const supplier = spawnLogged('java', ['-jar', supplierJar], path.join(os.tmpdir(), 'reference-supplier.log'));
 
   // Route simulator's outbound supplier calls through the supplier prism proxy.
   const simulator = spawnLogged('java', [
     '-jar', simulatorJar,
     `--simulator.supplier-base-url=http://localhost:${PORTS.supplierProxy}`,
     `--simulator.public-base-url=http://localhost:${PORTS.simulator}`,
-  ], '/tmp/healthstore-simulator.log');
+  ], path.join(os.tmpdir(), 'healthstore-simulator.log'));
 
+  // No --errors: it would block violating requests with only a generic error
+  // (prism drops the field-level [VALIDATOR] detail once it short-circuits to
+  // block). Letting requests through and catching violations via the log in
+  // global-teardown.js keeps the full diagnostic detail for every violation,
+  // including ones on calls the tests don't directly assert on.
   const healthstoreProxy = spawnLogged(PRISM, [
     'proxy',
     path.join(ROOT, 'specification/healthstore-api.yaml'),
@@ -106,8 +141,7 @@ module.exports = async function globalSetup() {
     waitForPort(PORTS.supplierProxy).then(() => process.stdout.write('  supplier-proxy ready\n')),
   ]);
 
-  const pidFile = path.join(os.tmpdir(), 'integration-pids.json');
-  fs.writeFileSync(pidFile, JSON.stringify({
+  fs.writeFileSync(PID_FILE, JSON.stringify({
     supplier: supplier.pid,
     simulator: simulator.pid,
     healthstoreProxy: healthstoreProxy.pid,
@@ -115,5 +149,5 @@ module.exports = async function globalSetup() {
     healthstoreProxyLog,
     supplierProxyLog,
   }));
-  process.env.INTEGRATION_PID_FILE = pidFile;
+  process.env.INTEGRATION_PID_FILE = PID_FILE;
 };

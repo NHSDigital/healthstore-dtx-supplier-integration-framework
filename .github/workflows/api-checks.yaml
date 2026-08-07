@@ -16,3 +16,19 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm run lint:spec -- --format github-actions
+
+  contract-tests:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: lts/*
+          cache: npm
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '25'
+      - run: npm ci
+      - run: npm run test:integration
