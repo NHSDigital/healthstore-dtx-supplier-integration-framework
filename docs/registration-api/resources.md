@@ -20,23 +20,23 @@ Implemented by HealthStore, called by the platform.
 | Method | Path | Carries | Returns |
 |---|---|---|---|
 | `GET` | `/registrations/{registration-id}` | | The `ServiceRequest` |
-| `GET` | `/registrations?cohort={cohort-id}&_count={n}&page={p}` | | A `searchset` Bundle of ServiceRequests |
+| `GET` | `/registrations?_count={n}&cohort={cohort-id}` | | A `searchset` Bundle of ServiceRequests |
 | `POST` | `/registrations/{registration-id}/tasks` | A lifecycle `Task`: registered, rejected, activated, deactivated | Not yet defined |
 
-### Cohort retrieval
+### Worklist retrieval
 
 | Parameter | Required | Rule |
 |---|---|---|
-| `cohort` | Yes | The cohort identifier |
-| `_count` | Yes | Page size, 1 to 100 |
-| `page` | Yes | Page number, from 1 |
+| `_count` | Yes | Maximum registrations returned by one call, 1 to 100 |
+| `cohort` | No | Narrows to one cohort. Omitted, the worklist covers every registration awaiting the platform's action |
 
-The Bundle carries `link` with `self`, `previous` and `next`.
+The Bundle carries `link` with `self`.
 
-Returns only registrations awaiting action from the platform: those with no
-lifecycle Task outstanding against their current `ServiceRequest.status`,
-whether that status is `active` or `revoked`. Registrations leave the worklist
-as the platform actions them.
+The worklist is scoped to the calling platform, and returns only registrations
+awaiting its action: those with no lifecycle Task outstanding against their
+current `ServiceRequest.status`, whether that status is `active` or `revoked`.
+Registrations leave the worklist as the platform actions them. The platform
+repeats the call until no registrations are returned.
 
 ## Authentication
 
@@ -115,6 +115,18 @@ fails the request schema and draws a 400.
 
 A platform that cannot accept a registration request at all responds with one of
 the above rather than a Task.
+
+## Rate limits
+
+| Surface | Limit set by | Value |
+|---|---|---|
+| Registrations API | NHS HealthStore | TBC |
+| Supplier API | The platform | TBC |
+
+Whether a limit counts per endpoint or across a surface is TBC.
+
+Exceeding the limit returns `429` with `Retry-After` in seconds. The caller MUST
+wait at least that long before retrying.
 
 ## Headers
 

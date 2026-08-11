@@ -1,16 +1,18 @@
 get:
-  operationId: searchRegistrations
+  operationId: fetchRegistrationWorklist
   tags:
     - registrations
-  summary: Retrieve a cohort's registrations
+  summary: Retrieve the next registrations awaiting action
   description: |
     Returns only registrations awaiting action from the platform: those with
-    no lifecycle Task outstanding against their current status. Registrations
-    leave the worklist as they are actioned.
+    no lifecycle Task outstanding against their current status. Scoped to the
+    calling platform. cohort narrows the worklist to one cohort; omitted, it
+    covers every registration awaiting the platform's action. Registrations
+    leave the worklist as they are actioned. The platform repeats the call
+    until no registrations are returned.
   parameters:
     - $ref: '../queryParameters/Cohort.yaml'
     - $ref: '../queryParameters/Count.yaml'
-    - $ref: '../queryParameters/Page.yaml'
     - $ref: '../headers/request/XRequestID.yaml'
     - $ref: '../headers/request/XCorrelationID.yaml'
   responses:
@@ -24,17 +26,13 @@ get:
       content:
         application/fhir+json:
           schema:
-            $ref: '../schemas/RegistrationSearchsetBundle.yaml'
+            $ref: '../schemas/RegistrationWorklistBundle.yaml'
           example:
             resourceType: Bundle
             type: searchset
             link:
               - relation: self
-                url: 'https://api.healthstore.nhs.uk/registrations?cohort=cohort-example-001&_count=50&page=2'
-              - relation: previous
-                url: 'https://api.healthstore.nhs.uk/registrations?cohort=cohort-example-001&_count=50&page=1'
-              - relation: next
-                url: 'https://api.healthstore.nhs.uk/registrations?cohort=cohort-example-001&_count=50&page=3'
+                url: 'https://api.healthstore.nhs.uk/registrations?cohort=cohort-example-001&_count=50'
             entry:
               - resource:
                   resourceType: ServiceRequest

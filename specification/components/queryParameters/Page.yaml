@@ -1,7 +1,0 @@
-name: page
-in: query
-required: true
-description: Page number, from 1.
-schema:
-  type: integer
-  minimum: 1

@@ -1,5 +1,6 @@
-title: RegistrationSearchsetBundle
-description: A page of a cohort's registrations awaiting action from the platform.
+title: RegistrationWorklistBundle
+description: |
+  Up to _count registrations awaiting action from the platform.
 type: object
 required:
   - resourceType
@@ -17,6 +18,7 @@ properties:
   link:
     type: array
     minItems: 1
+    maxItems: 1
     items:
       type: object
       required:
@@ -27,8 +29,6 @@ properties:
           type: string
           enum:
             - self
-            - previous
-            - next
         url:
           type: string
   entry:

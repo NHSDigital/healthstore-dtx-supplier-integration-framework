@@ -23,7 +23,7 @@ security:
   - clientCredentials: []
 paths:
   /registrations:
-    $ref: './components/endpoints/searchRegistrations.yaml'
+    $ref: './components/endpoints/fetchRegistrationWorklist.yaml'
   /registrations/{registration-id}:
     $ref: './components/endpoints/getRegistration.yaml'
   /registrations/{registration-id}/tasks:

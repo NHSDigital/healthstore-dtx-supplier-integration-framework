@@ -5,6 +5,8 @@ description: |
   |---|---|
   | TOO_MANY_REQUESTS | Rate exceeded |
 headers:
+  Retry-After:
+    $ref: '../headers/response/RetryAfter.yaml'
   X-Request-ID:
     $ref: '../headers/response/XRequestID.yaml'
   X-Correlation-ID:

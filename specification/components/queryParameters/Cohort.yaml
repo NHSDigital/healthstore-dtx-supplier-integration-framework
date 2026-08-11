@@ -1,6 +1,8 @@
 name: cohort
 in: query
-required: true
-description: The cohort identifier.
+required: false
+description: |
+  Narrows the worklist to one cohort. Omitted, the worklist covers every
+  registration awaiting the platform's action.
 schema:
   type: string

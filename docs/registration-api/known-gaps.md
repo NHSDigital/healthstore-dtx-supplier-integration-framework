@@ -2,6 +2,7 @@
 
 ## General
 
+- Non-functional requirements are not specified: timeliness, rate limits and volumes.
 - In the current service request, the patient's registered GP is included - is this relevant / required?
 - The area around what is required related to the following needs to be considered:
   - The body that licenses e.g. commissioning body ODS
