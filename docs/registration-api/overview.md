@@ -12,7 +12,7 @@ The analogy runs:
 | Prescribing | EPS status | This service |
 |---|---|---|
 | Prescription issued | To be Dispensed | Patient enrolled into HealthStore |
-| Pharmacy takes it on | With Pharmacy | Patient registered onto the digital therapeutic platform, which confirms it accepts the registration |
+| Pharmacy takes it on | With Pharmacy | Patient registered onto the digital therapeutic platform, which confirms the registration |
 | Patient told it is ready | Ready to Collect | Patient notified |
 | Patient collects | Collected | Patient opens the digital therapeutic, communicated to HealthStore by the platform as an activation |
 
@@ -32,8 +32,9 @@ timeliness requirements.
 | Cohort | Registered within a bounded window, at a rate the platform sets. |
 | Single patient | Enrolled and registered in real time, potentially while the clinician and patient are together in the consultation. |
 
-Enrolments are released for registration only once the cohort has closed
-upstream, so its membership is fixed before any registration request is sent.
+Enrolments are released for registration once the cohort has closed upstream.
+Whether membership is then fixed is an open question, and the answer decides
+whether one registration request per cohort reaches everyone in it.
 
 ## Agreed
 
@@ -65,7 +66,7 @@ upstream, so its membership is fixed before any registration request is sent.
    recorded, and may drive a retry.
 2. The platform retrieves the registrations it names, from the Registrations
    API.
-3. The platform submits a Task indicating the registration accepted or rejected.
+3. The platform submits a Task reporting the registration registered or rejected.
 4. Subsequent use of the digital therapeutic produces a Task representing
    activation.
 
@@ -82,43 +83,38 @@ registration's.
 
 ## Consent
 
-Accepting a registration signals to HealthStore that the patient is able to
-access the digital therapeutic. It asserts nothing about what the platform
+Reporting a registration as registered signals to HealthStore that the patient is
+able to access the digital therapeutic. It asserts nothing about what the platform
 holds.
 
 What a platform stores of the ServiceRequest is its own implementation detail. A
-platform may accept the registration on receiving the registration request, and
-defer retrieving and persisting it in full until the patient first opens the
-app.
+platform may report the registration registered on receiving the registration
+request, and defer retrieving and persisting it in full until the patient first
+opens the app.
 
 A platform deferring the retrieval must still be able to relate the patient
 first logging into the app to a ServiceRequest.
 
 ## Extended lifecycle
 
-Not yet specified.
+Only partly settled. What remains is in `open-questions-and-decisions.md`,
+including whether HealthStore signals de-registration outbound and in what form,
+whether de-registration removes one registration or the patient's account, and
+whether natural completion of a course is the same signal.
 
 **De-registration** means the patient is no longer able to access the digital
-therapeutic. It is not an instruction to delete. What the platform does with
-what it already holds, clinical records in particular, is its own, on the same
-basis as consent.
+therapeutic. It is not an instruction to delete. What the platform does with what
+it already holds, clinical records in particular, is its own, on the same basis as
+consent.
 
-**Requesting it.** Two options:
+**Reporting it.** A Task against the ServiceRequest with `businessStatus`
+`deactivated`, as registration and activation are reported. This holds whether the
+platform initiated it or HealthStore did. The platform reports; it does not alter
+the ServiceRequest.
 
-- The retrieval identifies a ServiceRequest whose status is `revoked`.
-- A Task is submitted with that express intent.
-
-**Confirming it.** A Task against the ServiceRequest with `businessStatus`
-`deactivated`, as acceptance and activation are.
-
-**Platform-initiated.** Also a Task against the ServiceRequest. The platform
-reports; it does not alter the ServiceRequest. Candidate cases: consent
-withdrawn in the app, discharge from the programme, clinical unsuitability,
-withdrawal of the product.
-
-**Irreversible.** A de-registered registration is not reinstated. Putting the
-same patient back onto the same product is a new registration with a new
-registration identifier.
+**Irreversible.** A de-registered registration is not reinstated. Putting the same
+patient back onto the same product is a new registration with a new registration
+identifier.
 
 ## Elsewhere
 Resources and paths are in `resources.md`. FHIR resources and fields are in `fhir.md` - more to come.

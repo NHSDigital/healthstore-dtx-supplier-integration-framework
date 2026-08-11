@@ -39,7 +39,8 @@ agreed. Settling it needs both suppliers and the HealthStore programme.
 
 None of these is set. They are programme-set and standard across integrations.
 
-- Rate limit values for the Registrations API and the supplier API.
+- Rate limit values for the Registrations API and the supplier API, and whether a
+  limit is counted per endpoint or across the whole surface.
 - Timeliness targets for a single patient registration and for cohort processing.
 - Maximum cohort size, page size, and peak and mean daily registration volumes.
 - A minimum rate at which registrations are retrieved, or a maximum time before a
@@ -59,6 +60,10 @@ None of these is set. They are programme-set and standard across integrations.
   information is out of scope.
 - How a patient enrolled in secondary care and later targeted by primary care is
   recognised, and what mitigates it.
+- Which error classes on the Registrations API are terminal and which are
+  retryable, and with what schedule. This is the supplier retrying inbound,
+  distinct from HealthStore's own outbound retries, which `overview.md` already
+  states are HealthStore's own.
 
 ### For suppliers
 
@@ -86,6 +91,8 @@ below.
 - Whether a platform pre-provisions for an unrecognised organisation or rejects the
   registration.
 - What happens where a clinician has no route to retract a registration.
+- Whether natural completion of a therapeutic course is the same signal as
+  de-registration, or a distinct one.
 - Whether HealthStore signals de-registration outbound, and in what form.
 - Whether de-registration removes one registration or the patient's account.
 - How duplicates are removed within a cohort.
@@ -218,8 +225,10 @@ organisation.
 - **A platform is told a registration is coming.** Registration is not triggered by
   the patient opening the NHS App. The platform is notified in advance and
   retrieves on its own schedule.
-- **Activation ends HealthStore's orchestration.** The platform reports the
-  registration accepted or rejected, and later activated.
+- **Activation completes the initial registration.** The platform reports the
+  registration registered or rejected, and later activated. Activation means the
+  patient has done whatever initial setup the product requires and can use it.
+  Later lifecycle events are separate.
 - **Licensing is enforced on both sides.** HealthStore MUST NOT register a patient
   with a platform that is not licensed for the commissioning body, and a platform
   MUST reject a registration for a region it is not licensed to serve. The
@@ -231,3 +240,12 @@ organisation.
   onboarding, rather than set in this contract.
 - **Cohort retrieval drains rather than pages.** There is no page parameter. The
   platform calls until nothing is returned.
+- **The registration's state is in `businessStatus`, not `Task.status`.** A
+  registration is registered once the platform confirms it, reported as
+  `businessStatus` `registered` or `rejected`. `Task.status` is the FHIR workflow
+  status of the Task itself. On the response to a registration request it is
+  `accepted`, meaning only that the platform will retrieve.
+- **Off-boarding uses the lifecycle Task.** There is no separate off-boarding
+  operation. A platform reports it through `POST /registrations/{id}/tasks` with
+  `businessStatus` `deactivated`, as it reports acceptance and activation. The
+  mechanism is in the specification; the narrative sits in these docs.

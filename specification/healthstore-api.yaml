@@ -34,9 +34,9 @@ components:
       type: oauth2
       description: |
         OAuth 2.0 client credentials, issued by NHS HealthStore to the platform.
-        Client authentication is client_secret_post. The token endpoint is served
-        from the same host as the API.
+        Client authentication is client_secret_post. The token endpoint is the
+        auth provider's, issued with the credentials. tokenUrl is representative.
       flows:
         clientCredentials:
-          tokenUrl: /oauth2/token
+          tokenUrl: https://auth.healthstore.nhs.uk/oauth2/token
           scopes: {}

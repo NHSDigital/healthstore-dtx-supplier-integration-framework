@@ -20,7 +20,7 @@ A `Task`, sent by HealthStore to the supplier platform.
 | `requester` | Omitted | |
 | `owner` | Omitted | |
 
-`code` states the scope. `priority` reflects attendance: `asap` where the
+`code` states the scope. `priority` says whether the patient was present: `asap` where the
 registration is made face to face with the practitioner and patient present,
 `routine` for an invited cohort. The registration request and the registration
 it concerns have the same value.
@@ -59,19 +59,20 @@ Conformance is to base R4 `Task`.
 | `identifier` | Echoed unchanged |
 
 `accepted` is "The potential performer has agreed to execute the task but has
-not yet started work." Nothing afterwards refers to the registration request.
+not yet started work." Nothing later in the flow refers to the registration
+request again.
 
 ## Registration
 
 A registration is a `ServiceRequest`, retrieved whole. It requires no further
 request to resolve.
 
-Placement of what it references:
+Where each reference sits:
 
 | Reference | Placement |
 |---|---|
 | `subject` → Patient | Contained and required. `ServiceRequest.contained` includes at least the Patient, and `subject.reference` is `#<id>` |
-| `requester` → PractitionerRole or Organization | `requester.identifier` gives the ODS code and `requester.display` the name. No resource is sent |
+| `requester` → Organization | ODS code in `requester.identifier`, name in `requester.display`. No resource is sent. The clinician proposal replaces this with a contained `PractitionerRole` |
 | `performer` → provider or service | As above |
 | `reasonReference` | Not included |
 | `supportingInfo` | Not included |
@@ -105,15 +106,16 @@ requires that extension and fixes it to `01`.
 NHS HealthStore MUST verify the patient against PDS before registration, and
 MUST NOT attempt to register a patient it could not verify.
 
-`use` on `telecom` is bound to `home`, `work`, `temp`, `old`, `mobile`,
+`telecom.use` permits only `home`, `work`, `temp`, `old`, `mobile` and
 `billing`.
 
 Cardinality above is set within our own contract rather than by UK Core.
 
 ### ServiceRequest
 
-The cardinality column gives base FHIR R4. It makes `status`, `intent` and
-`subject` mandatory; the rest are required by this contract.
+The cardinality column gives base FHIR R4. This contract requires `identifier`,
+`status`, `intent`, `subject` and a contained Patient. The rest are optional while
+the care path code and the practitioners are open.
 
 | Field | FHIR R4 element | Base card | Rule |
 |---|---|---|---|
@@ -121,25 +123,32 @@ The cardinality column gives base FHIR R4. It makes `status`, `intent` and
 | `status` | `ServiceRequest.status` | 1..1 | `active` when submitted. Bound to `request-status` |
 | `intent` | `ServiceRequest.intent` | 1..1 | `order`. Bound to `request-intent` |
 | `patient` | `ServiceRequest.subject` | 1..1 | `Reference(Patient)`. Base also permits Group, Location, Device |
-| `care_path_code` | `ServiceRequest.code` | 0..1 | Coded digital therapeutic programme or pathway. Base binding is `example` strength, so the value set is ours |
+| `care_path_code` | `ServiceRequest.code` | 0..1 | Coded digital therapeutic programme or pathway. FHIR binds this element for illustration only, so the value set is ours to define |
 | `authored_on` | `ServiceRequest.authoredOn` | 0..1 | "When the request transitioned to being actionable." The practitioner's act, not HealthStore creating the registration |
-| `requester` | `ServiceRequest.requester` | 0..1 | `Reference(Practitioner \| PractitionerRole \| Organization \| Patient \| RelatedPerson \| Device)` |
+| `requester` | `ServiceRequest.requester` | 0..1 | Base permits Practitioner, PractitionerRole, Organization, Patient, RelatedPerson and Device. This contract uses Organization today |
 | `performer` | `ServiceRequest.performer` | 0..* | Intended digital therapeutic provider or service |
-| `reason` | `ServiceRequest.reasonCode` | 0..* | Clinical indication. Base binding is `example` strength, so the value set is ours |
+| `reason` | `ServiceRequest.reasonCode` | 0..* | Clinical indication. FHIR binds this element for illustration only, so the value set is ours to define |
 | `priority` | `ServiceRequest.priority` | 0..1 | Constrained from `request-priority` to `routine` and `asap`, the same values as `Task.priority`. `asap` where made face to face with the practitioner attending, `routine` for an invited cohort. The registration request has the same value |
 
-Demographics stay on Patient and resolve through `ServiceRequest.subject`.
+Demographics sit on the Patient, reached through `ServiceRequest.subject`.
+
+No field in the registration is present solely for reporting. Each is there
+because the registration needs it, so the cardinality in these tables is the whole
+of the distinction. The commissioning body, proposed as a contained
+`Coverage`, has a reporting destination and is load-bearing too, since a platform
+checks it to reject a registration for a region it is not licensed to serve.
 
 ### Organisation identity
 
 | Concern | Home | State |
 |---|---|---|
-| The practitioner or organisation registering | `ServiceRequest.requester` → PractitionerRole or Organization | Settled |
-| The practitioner responsible for care | No home. Candidates: `ServiceRequest.performer` → CareTeam, or an extension of our own | Open |
-| The body that licenses | No home | Open |
+| The registered GP practice | `Patient.generalPractitioner` | Decided |
+| The digital therapeutic provider | `ServiceRequest.performer` | Decided |
+| The clinician responsible for care | `ServiceRequest.requester` → contained `PractitionerRole` | Proposed |
+| The practitioner placing the enrolment | Not in the registration, internal to HealthStore | Proposed |
+| The commissioning body | `ServiceRequest.insurance` → contained `Coverage`, named in `payor` | Proposed |
 
-`Patient.generalPractitioner` holds the registered GP practice, which is
-neither of the first two.
+The proposals are in `open-questions-and-decisions.md`.
 
 UK Core publishes four extensions on ServiceRequest. None is used here.
 
@@ -150,9 +159,27 @@ UK Core publishes four extensions on ServiceRequest. None is used here.
 | `Extension-UKCore-Coverage` | `CodeableConcept`, extensible binding to `UKCore-FundingCategory` |
 | `Extension-UKCore-PriorityReason` | On `ServiceRequest.priority`. `CodeableConcept`, preferred binding to `UKCore-ServiceRequestReasonCode`. Would give why a registration is `asap` |
 
+## Lifecycle Task
+
+A `Task`, submitted by the platform to HealthStore against a registration.
+
+| Element | Value | Notes |
+|---|---|---|
+| `resourceType` | `Task` | |
+| `status` | A `task-status` value | The Task's own workflow status, not the registration's state |
+| `intent` | A `task-intent` value | |
+| `businessStatus` | `registered`, `rejected`, `activated` or `deactivated` | The registration's state |
+| `statusReason` | A rejection reason | Set where `businessStatus` is `rejected` |
+
+`businessStatus` gives the registration's state. `Task.status` describes the Task.
+The response to a lifecycle Task, and what else the Task should contain, are open.
+
+The rejection reasons defined so far are `not-licensed` and `duplicate`. The full
+set is open.
+
 ## System URIs
 
-A system URI appears only on the coded and identifier-typed elements.
+A system URI appears only on elements that are codes or identifiers.
 
 | Element | FHIR type | System URI |
 |---|---|---|
@@ -161,8 +188,10 @@ A system URI appears only on the coded and identifier-typed elements.
 | `identifier` | `Identifier` | `https://fhir.healthstore.nhs.uk/Id/registration-request` |
 | `groupIdentifier` | `Identifier` | `https://fhir.healthstore.nhs.uk/Id/cohort` |
 | `focus` | `Reference` | `https://fhir.healthstore.nhs.uk/Id/registration`, if referenced by identifier rather than by URL |
+| `businessStatus` | `CodeableConcept` | `https://fhir.healthstore.nhs.uk/CodeSystem/registration-business-status` |
+| `statusReason` | `CodeableConcept` | `https://fhir.healthstore.nhs.uk/CodeSystem/rejection-reason` |
 
-Each `system` value is fixed and is the only value permitted.
+Each `system` value is fixed.
 
 These URIs are provisional and assume HealthStore takes
 its own `fhir.healthstore.nhs.uk` subdomain, and that what the supplier sees is
@@ -199,7 +228,8 @@ Both values of `code` come from
 `Task.priority` is constrained from the FHIR `request-priority` set to
 `routine` and `asap`. `urgent` and `stat` are rejected with `INVALID_CODE`.
 
-`Task.code` is the one value set we define, in the code system above.
+`Task.code`, `Task.businessStatus` and `Task.statusReason` take value sets we
+define, in the code systems above.
 
 A registration request may arrive more than once, with the same
 `identifier` each time. HealthStore chooses its own retry schedule; the limits
