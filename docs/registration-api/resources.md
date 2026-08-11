@@ -2,7 +2,7 @@
 
 Two surfaces. Base paths are not yet set.
 
-Every endpoint except `/oauth/token` uses `application/fhir+json`.
+Every endpoint except the token endpoints uses `application/fhir+json`.
 
 ## Supplier API
 
@@ -69,8 +69,9 @@ Interim, until APIM onboarding completes. AWS Cognito.
 | Token | Bearer, JWT |
 | Scopes | TBD |
 
-Target. NHS England API Management, application-restricted, signed JWT.
-`https://proxygen.prod.api.platform.nhs.uk/components/securitySchemes/app-level3`
+Target. NHS England API Management, application-restricted, signed JWT. The
+security scheme is defined at
+`https://proxygen.prod.api.platform.nhs.uk/components/securitySchemes/app-level3`.
 
 | Item | Detail |
 |---|---|
@@ -81,8 +82,9 @@ Target. NHS England API Management, application-restricted, signed JWT.
 | Token | Bearer, JWT |
 | Scopes | TBD |
 
-Moving from the interim to the target changes how a token is obtained and
-nothing else. The API calls, the bearer header, token caching against
+Moving from the interim to the target changes where a token is obtained and how,
+and nothing else. The interim endpoint belongs to the auth provider; the target is
+a path on APIM. The API calls, the bearer header, token caching against
 `expires_in`, refresh and `401` handling are the same throughout.
 
 At the token endpoint, `client_id` and `client_secret` are replaced by a
@@ -93,9 +95,9 @@ England.
 
 ## Errors
 
-Every endpoint except the token endpoints returns an `OperationOutcome` on
-error. The token endpoints, `/oauth/token` on the supplier API and
-`/oauth2/token` on the Registrations API, return the OAuth 2.0 error response.
+Every endpoint except the token endpoints returns an `OperationOutcome` on error.
+The token endpoints, the platform's `/oauth/token` and the one the Registrations
+API's credentials are issued against, return the OAuth 2.0 error response.
 
 | Failure | Status | Code |
 |---|---|---|
@@ -123,19 +125,18 @@ the above rather than a Task.
 | Registrations API | NHS HealthStore | TBC |
 | Supplier API | The platform | TBC |
 
-Whether a limit counts per endpoint or across a surface is TBC.
-
 Exceeding the limit returns `429` with `Retry-After` in seconds. The caller MUST
 wait at least that long before retrying.
 
 ## Headers
 
-Every endpoint except `/oauth/token`.
+Every endpoint except the token endpoints.
 
 | Header | Required | Rule |
 |---|---|---|
-| `X-Request-ID` | Yes | A GUID for this request. De-duplicates repeats and traces a call in support. Mirrored back in the response |
-| `X-Correlation-ID` | No | Supplied by the caller to track a transaction across systems. Need not be unique per call. Returned unchanged |
+| `X-Request-ID` | Yes | A GUID for this request. De-duplicates repeats and traces a call in support. Returned in the response headers |
+| `X-Correlation-ID` | No | Supplied by the caller to track a transaction across systems. The same value may appear on many calls belonging to one transaction. Returned unchanged |
 
-A retry replays the request exactly, headers included, so both have the same
-values on every attempt.
+When HealthStore retries a registration request it replays it exactly, headers
+included. `X-Request-ID` is therefore the same on every attempt, which is how a
+platform tells a repeat from a new request.

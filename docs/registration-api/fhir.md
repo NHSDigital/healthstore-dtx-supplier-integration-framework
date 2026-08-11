@@ -35,6 +35,10 @@ it concerns have the same value.
 Where `code`, `focus` and `groupIdentifier` disagree, the request fails the
 schema and is rejected with a 400.
 
+A registration request may arrive more than once, with the same `identifier` each
+time. HealthStore chooses its own retry schedule; the limits on it are set out in
+the requirements.
+
 ### Required by this contract
 
 Beyond base FHIR, which mandates only `status` and `intent`:
@@ -46,9 +50,7 @@ Beyond base FHIR, which mandates only `status` and `intent`:
 - `focus`, when `code` is `process-specific-service-request`
 - `groupIdentifier`, when `code` is `process-available-service-requests`
 
-Conformance is to base R4 `Task`.
-
-## Response
+### Response
 
 `200`, returning the same Task with its status changed.
 
@@ -73,11 +75,12 @@ Where each reference sits:
 |---|---|
 | `subject` → Patient | Contained and required. `ServiceRequest.contained` includes at least the Patient, and `subject.reference` is `#<id>` |
 | `requester` → Organization | ODS code in `requester.identifier`, name in `requester.display`. No resource is sent. The clinician proposal replaces this with a contained `PractitionerRole` |
-| `performer` → provider or service | As above |
+| `performer` → provider or service | ODS code in `performer.identifier`, name in `performer.display`. No resource is sent |
 | `reasonReference` | Not included |
 | `supportingInfo` | Not included |
 
-No reference is given as a URL.
+No reference is given as a URL. `meta.profile` is omitted throughout; conformance
+is stated in this document rather than asserted on the instance.
 
 Patients are validated against PDS upstream of registration.
 
@@ -114,8 +117,9 @@ Cardinality above is set within our own contract rather than by UK Core.
 ### ServiceRequest
 
 The cardinality column gives base FHIR R4. This contract requires `identifier`,
-`status`, `intent`, `subject` and a contained Patient. The rest are optional while
-the care path code and the practitioners are open.
+`status`, `intent`, `subject`, a contained Patient, and `performer`, which decides
+which platform may retrieve the registration. The rest are optional in the
+schema.
 
 | Field | FHIR R4 element | Base card | Rule |
 |---|---|---|---|
@@ -132,11 +136,17 @@ the care path code and the practitioners are open.
 
 Demographics sit on the Patient, reached through `ServiceRequest.subject`.
 
-No field in the registration is present solely for reporting. Each is there
-because the registration needs it, so the cardinality in these tables is the whole
-of the distinction. The commissioning body, proposed as a contained
-`Coverage`, has a reporting destination and is load-bearing too, since a platform
-checks it to reject a registration for a region it is not licensed to serve.
+Nothing records the moment HealthStore created the registration, which stays
+internal. `ServiceRequest.authoredOn` records the practitioner's act, and
+`Task.authoredOn` the sending of the registration request.
+
+Every field is needed for the registration to work, and none is present only for
+reporting. The cardinality column is therefore the only distinction that matters:
+what is required is required to register.
+
+The commissioning body, proposed as a contained `Coverage`, is reported on as
+well, but it is needed too, since a platform checks it to reject a registration
+for a region it is not licensed to serve.
 
 ### Organisation identity
 
@@ -181,15 +191,17 @@ set is open.
 
 A system URI appears only on elements that are codes or identifiers.
 
-| Element | FHIR type | System URI |
-|---|---|---|
-| `status`, `intent`, `priority` | `code` | None |
-| `code` | `CodeableConcept` | `https://fhir.healthstore.nhs.uk/CodeSystem/task-code` |
-| `identifier` | `Identifier` | `https://fhir.healthstore.nhs.uk/Id/registration-request` |
-| `groupIdentifier` | `Identifier` | `https://fhir.healthstore.nhs.uk/Id/cohort` |
-| `focus` | `Reference` | `https://fhir.healthstore.nhs.uk/Id/registration`, if referenced by identifier rather than by URL |
-| `businessStatus` | `CodeableConcept` | `https://fhir.healthstore.nhs.uk/CodeSystem/registration-business-status` |
-| `statusReason` | `CodeableConcept` | `https://fhir.healthstore.nhs.uk/CodeSystem/rejection-reason` |
+| Resource | Element | FHIR type | System URI |
+|---|---|---|---|
+| Registration request Task | `status`, `intent`, `priority` | `code` | None |
+| Registration request Task | `code` | `CodeableConcept` | `https://fhir.healthstore.nhs.uk/CodeSystem/task-code` |
+| Registration request Task | `identifier` | `Identifier` | `https://fhir.healthstore.nhs.uk/Id/registration-request` |
+| Registration request Task | `groupIdentifier` | `Identifier` | `https://fhir.healthstore.nhs.uk/Id/cohort` |
+| Registration request Task | `focus` | `Reference` | `https://fhir.healthstore.nhs.uk/Id/registration`, if referenced by identifier rather than by URL |
+| Lifecycle Task | `businessStatus` | `CodeableConcept` | `https://fhir.healthstore.nhs.uk/CodeSystem/registration-business-status` |
+| Lifecycle Task | `statusReason` | `CodeableConcept` | `https://fhir.healthstore.nhs.uk/CodeSystem/rejection-reason` |
+| ServiceRequest | `identifier` | `Identifier` | `https://fhir.healthstore.nhs.uk/Id/registration` |
+| ServiceRequest | `code` | `CodeableConcept` | Ours to define, see the care path code open questions |
 
 Each `system` value is fixed.
 
@@ -217,7 +229,9 @@ Both values of `code` come from
 
 ## Value sets used
 
-`Task.status` and `Task.intent` take the FHIR R4 value sets unchanged:
+`Task.intent` takes the FHIR R4 value set unchanged, as does `Task.status` on a
+lifecycle Task. On the registration request `status` is fixed to `requested`, and
+on the response to `accepted`.
 
 - status: `draft`, `requested`, `received`, `accepted`, `rejected`, `ready`,
   `cancelled`, `in-progress`, `on-hold`, `failed`, `completed`,
@@ -230,14 +244,6 @@ Both values of `code` come from
 
 `Task.code`, `Task.businessStatus` and `Task.statusReason` take value sets we
 define, in the code systems above.
-
-A registration request may arrive more than once, with the same
-`identifier` each time. HealthStore chooses its own retry schedule; the limits
-on it are set out in the requirements.
-
-Nothing records the moment HealthStore created the registration, which stays
-internal. `ServiceRequest.authoredOn` records the practitioner's act, and
-`Task.authoredOn` the sending of the registration request.
 
 ## Reference
 

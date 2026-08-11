@@ -245,6 +245,9 @@ organisation.
   `businessStatus` `registered` or `rejected`. `Task.status` is the FHIR workflow
   status of the Task itself. On the response to a registration request it is
   `accepted`, meaning only that the platform will retrieve.
+- **De-registration is irreversible.** A de-registered registration is not
+  reinstated. Putting the same patient back onto the same product is a new
+  registration with a new registration identifier.
 - **Off-boarding uses the lifecycle Task.** There is no separate off-boarding
   operation. A platform reports it through `POST /registrations/{id}/tasks` with
   `businessStatus` `deactivated`, as it reports acceptance and activation. The

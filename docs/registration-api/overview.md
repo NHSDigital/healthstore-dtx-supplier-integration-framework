@@ -1,4 +1,4 @@
-# third-party-platform-patient-registration — proposed design
+# Design overview
 
 ## Mental model
 
@@ -38,6 +38,9 @@ whether one registration request per cohort reaches everyone in it.
 
 ## Agreed
 
+The constructs the exchange is built from. Decisions closing specific questions
+are in `open-questions-and-decisions.md`.
+
 - FHIR constructs throughout.
 - The registration request that goes out is a Task.
 - The registration payload is a ServiceRequest. This holds whether the exchange
@@ -49,6 +52,8 @@ whether one registration request per cohort reaches everyone in it.
   registration. It answers two questions:
   - Is the Task well formed, with its required fields present and valid?
   - Does it relate to a registration that exists and was issued?
+
+  What that response contains is not yet defined.
 - Lifecycle Tasks give `status` from the FHIR set and the domain state in
   `businessStatus`. Registered, rejected, activated and deactivated are
   business states, not FHIR ones.
@@ -67,8 +72,8 @@ whether one registration request per cohort reaches everyone in it.
 2. The platform retrieves the registrations it names, from the Registrations
    API.
 3. The platform submits a Task reporting the registration registered or rejected.
-4. Subsequent use of the digital therapeutic produces a Task representing
-   activation.
+4. The patient opens the digital therapeutic and completes any initial setup it
+   requires, which produces a Task representing activation.
 
 ![Registration sequence](registration-sequence.png)
 
@@ -81,7 +86,7 @@ registration's.
 | Cohort | A cohort identifier. The platform retrieves at a rate it sets |
 | Single patient | The one registration. The platform retrieves straight away, fast enough to sit inside the consultation |
 
-## Consent
+## What registration asserts
 
 Reporting a registration as registered signals to HealthStore that the patient is
 able to access the digital therapeutic. It asserts nothing about what the platform
@@ -105,7 +110,7 @@ whether natural completion of a course is the same signal.
 **De-registration** means the patient is no longer able to access the digital
 therapeutic. It is not an instruction to delete. What the platform does with what
 it already holds, clinical records in particular, is its own, on the same basis as
-consent.
+what it stores of a live registration.
 
 **Reporting it.** A Task against the ServiceRequest with `businessStatus`
 `deactivated`, as registration and activation are reported. This holds whether the
@@ -117,4 +122,7 @@ patient back onto the same product is a new registration with a new registration
 identifier.
 
 ## Elsewhere
-Resources and paths are in `resources.md`. FHIR resources and fields are in `fhir.md` - more to come.
+
+Resources and paths are in `resources.md`. FHIR resources and fields are in
+`fhir.md`. What is open, what has been decided, and the proposals are in
+`open-questions-and-decisions.md`.

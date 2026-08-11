@@ -10,6 +10,7 @@ required:
   - intent
   - subject
   - contained
+  - performer
 properties:
   resourceType:
     type: string
@@ -70,7 +71,10 @@ properties:
     $ref: './OdsReference.yaml'
   performer:
     type: array
-    description: Intended digital therapeutic provider or service.
+    minItems: 1
+    description: |
+      The intended digital therapeutic provider. Decides which platform may
+      retrieve the registration.
     items:
       $ref: './OdsReference.yaml'
   reasonCode:

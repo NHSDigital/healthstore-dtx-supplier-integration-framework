@@ -77,6 +77,11 @@ get:
                   subject:
                     reference: '#patient'
                   authoredOn: '2026-08-04T09:00:00Z'
+                  performer:
+                    - identifier:
+                        system: 'https://fhir.nhs.uk/Id/ods-organization-code'
+                        value: 8JK09
+                      display: Example DTx Provider
     '400':
       $ref: '../responses/BadRequest.yaml'
     '401':
