@@ -2,13 +2,13 @@
 
 Two surfaces. Base paths are not yet set.
 
-Every endpoint except `/oauth/token` carries `application/fhir+json`.
+Every endpoint except `/oauth/token` uses `application/fhir+json`.
 
 ## Supplier API
 
 Implemented by the platform, called by HealthStore.
 
-| Method | Path | Carries | Returns |
+| Method | Path | Request body | Returns |
 |---|---|---|---|
 | `POST` | `/oauth/token` | `client_credentials` grant, form-encoded | Bearer token |
 | `POST` | `/healthstore-registration-requests` | A registration request `Task` | `200` with the Task, `status` set to `accepted` |
@@ -17,7 +17,7 @@ Implemented by the platform, called by HealthStore.
 
 Implemented by HealthStore, called by the platform.
 
-| Method | Path | Carries | Returns |
+| Method | Path | Request body | Returns |
 |---|---|---|---|
 | `GET` | `/registrations/{registration-id}` | | The `ServiceRequest` |
 | `GET` | `/registrations?_count={n}&cohort={cohort-id}` | | A `searchset` Bundle of ServiceRequests |
@@ -30,7 +30,7 @@ Implemented by HealthStore, called by the platform.
 | `_count` | Yes | Maximum registrations returned by one call, 1 to 100 |
 | `cohort` | No | Narrows to one cohort. Omitted, the worklist covers every registration awaiting the platform's action |
 
-The Bundle carries `link` with `self`.
+The Bundle has `link` with `self`.
 
 The worklist is scoped to the calling platform, and returns only registrations
 awaiting its action: those with no lifecycle Task outstanding against their
@@ -64,7 +64,7 @@ Interim, until APIM onboarding completes. AWS Cognito.
 |---|---|
 | Register | Credentials issued by HealthStore |
 | Grant | OAuth 2.0 `client_credentials` |
-| Token endpoint | `/oauth2/token`, on the same host as the API. The auth provider's endpoint, carried in the spec only as `tokenUrl` |
+| Token endpoint | `/oauth2/token`, on the same host as the API. The auth provider's endpoint, present in the spec only as `tokenUrl` |
 | Client authentication | `client_secret_post` |
 | Token | Bearer, JWT |
 | Scopes | TBD |
@@ -86,7 +86,7 @@ nothing else. The API calls, the bearer header, token caching against
 `expires_in`, refresh and `401` handling are the same throughout.
 
 At the token endpoint, `client_id` and `client_secret` are replaced by a
-`client_assertion`: a JWT carrying `iss` and `sub` set to the API key, `aud` set
+`client_assertion`: a JWT with `iss` and `sub` set to the API key, `aud` set
 to the token endpoint, a per-request `jti`, and `exp` no more than five minutes
 ahead, signed RS512 with a private key whose public half is registered with NHS
 England.
@@ -102,7 +102,7 @@ error. The token endpoints, `/oauth/token` on the supplier API and
 | Body is not valid FHIR | 400 | `INVALID_FHIR_STRUCTURE` |
 | A required element is absent | 400 | `MISSING_VALUE` |
 | An element is the wrong type or format | 400 | `INVALID_VALUE` |
-| An element carries a value outside its value set | 400 | `INVALID_CODE` |
+| An element has a value outside its value set | 400 | `INVALID_CODE` |
 | A required header is absent | 400 | `MISSING_HEADER` |
 | A required query parameter is absent | 400 | `MISSING_PARAMETER` |
 | The registration or cohort is not known, or is outside the caller's tenancy | 404 | `REFERENCE_NOT_FOUND` |
@@ -137,5 +137,5 @@ Every endpoint except `/oauth/token`.
 | `X-Request-ID` | Yes | A GUID for this request. De-duplicates repeats and traces a call in support. Mirrored back in the response |
 | `X-Correlation-ID` | No | Supplied by the caller to track a transaction across systems. Need not be unique per call. Returned unchanged |
 
-A retry replays the request exactly, headers included, so both carry the same
+A retry replays the request exactly, headers included, so both have the same
 values on every attempt.

@@ -6,7 +6,7 @@ description: |
   | INVALID_FHIR_STRUCTURE | Body is not valid FHIR |
   | MISSING_VALUE | A required element is absent |
   | INVALID_VALUE | An element is the wrong type or format |
-  | INVALID_CODE | An element carries a value outside its value set |
+  | INVALID_CODE | An element has a value outside its value set |
   | MISSING_HEADER | A required header is absent |
   | MISSING_PARAMETER | A required query parameter is absent |
 headers:

@@ -23,7 +23,7 @@ A `Task`, sent by HealthStore to the supplier platform.
 `code` states the scope. `priority` reflects attendance: `asap` where the
 registration is made face to face with the practitioner and patient present,
 `routine` for an invited cohort. The registration request and the registration
-it concerns carry the same value.
+it concerns have the same value.
 
 `code`, `focus` and `groupIdentifier` must agree:
 
@@ -70,11 +70,11 @@ Placement of what it references:
 
 | Reference | Placement |
 |---|---|
-| `subject` → Patient | Contained and required. `ServiceRequest.contained` carries at least the Patient, and `subject.reference` is `#<id>` |
-| `requester` → PractitionerRole or Organization | `requester.identifier` carries the ODS code and `requester.display` the name. No resource travels |
+| `subject` → Patient | Contained and required. `ServiceRequest.contained` includes at least the Patient, and `subject.reference` is `#<id>` |
+| `requester` → PractitionerRole or Organization | `requester.identifier` gives the ODS code and `requester.display` the name. No resource is sent |
 | `performer` → provider or service | As above |
-| `reasonReference` | Not carried |
-| `supportingInfo` | Not carried |
+| `reasonReference` | Not included |
+| `supportingInfo` | Not included |
 
 No reference is given as a URL.
 
@@ -117,7 +117,7 @@ The cardinality column gives base FHIR R4. It makes `status`, `intent` and
 
 | Field | FHIR R4 element | Base card | Rule |
 |---|---|---|---|
-| `registration_id` | `ServiceRequest.identifier` | 0..* | The registration identifier, system `https://fhir.healthstore.nhs.uk/Id/registration`. Carries idempotency |
+| `registration_id` | `ServiceRequest.identifier` | 0..* | The registration identifier, system `https://fhir.healthstore.nhs.uk/Id/registration`. Gives idempotency |
 | `status` | `ServiceRequest.status` | 1..1 | `active` when submitted. Bound to `request-status` |
 | `intent` | `ServiceRequest.intent` | 1..1 | `order`. Bound to `request-intent` |
 | `patient` | `ServiceRequest.subject` | 1..1 | `Reference(Patient)`. Base also permits Group, Location, Device |
@@ -126,7 +126,7 @@ The cardinality column gives base FHIR R4. It makes `status`, `intent` and
 | `requester` | `ServiceRequest.requester` | 0..1 | `Reference(Practitioner \| PractitionerRole \| Organization \| Patient \| RelatedPerson \| Device)` |
 | `performer` | `ServiceRequest.performer` | 0..* | Intended digital therapeutic provider or service |
 | `reason` | `ServiceRequest.reasonCode` | 0..* | Clinical indication. Base binding is `example` strength, so the value set is ours |
-| `priority` | `ServiceRequest.priority` | 0..1 | Constrained from `request-priority` to `routine` and `asap`, the same values as `Task.priority`. `asap` where made face to face with the practitioner attending, `routine` for an invited cohort. The registration request carries the same value |
+| `priority` | `ServiceRequest.priority` | 0..1 | Constrained from `request-priority` to `routine` and `asap`, the same values as `Task.priority`. `asap` where made face to face with the practitioner attending, `routine` for an invited cohort. The registration request has the same value |
 
 Demographics stay on Patient and resolve through `ServiceRequest.subject`.
 
@@ -148,15 +148,15 @@ UK Core publishes four extensions on ServiceRequest. None is used here.
 | `Extension-UKCore-SourceOfServiceRequest` | `CodeableConcept`, preferred binding to a SNOMED value set. The type of source, not its identity |
 | `Extension-UKCore-AdditionalContact` | `Reference(Organization \| Practitioner \| PractitionerRole)`. Who to contact about questions arising |
 | `Extension-UKCore-Coverage` | `CodeableConcept`, extensible binding to `UKCore-FundingCategory` |
-| `Extension-UKCore-PriorityReason` | On `ServiceRequest.priority`. `CodeableConcept`, preferred binding to `UKCore-ServiceRequestReasonCode`. Would carry why a registration is `asap` |
+| `Extension-UKCore-PriorityReason` | On `ServiceRequest.priority`. `CodeableConcept`, preferred binding to `UKCore-ServiceRequestReasonCode`. Would give why a registration is `asap` |
 
 ## System URIs
 
-A system URI travels only on the coded and identifier-typed elements.
+A system URI appears only on the coded and identifier-typed elements.
 
 | Element | FHIR type | System URI |
 |---|---|---|
-| `status`, `intent`, `priority` | `code` | Not carried |
+| `status`, `intent`, `priority` | `code` | None |
 | `code` | `CodeableConcept` | `https://fhir.healthstore.nhs.uk/CodeSystem/task-code` |
 | `identifier` | `Identifier` | `https://fhir.healthstore.nhs.uk/Id/registration-request` |
 | `groupIdentifier` | `Identifier` | `https://fhir.healthstore.nhs.uk/Id/cohort` |
@@ -201,11 +201,11 @@ Both values of `code` come from
 
 `Task.code` is the one value set we define, in the code system above.
 
-A registration request may arrive more than once, carrying the same
+A registration request may arrive more than once, with the same
 `identifier` each time. HealthStore chooses its own retry schedule; the limits
 on it are set out in the requirements.
 
-Nothing carries the moment HealthStore created the registration, which stays
+Nothing records the moment HealthStore created the registration, which stays
 internal. `ServiceRequest.authoredOn` records the practitioner's act, and
 `Task.authoredOn` the sending of the registration request.
 

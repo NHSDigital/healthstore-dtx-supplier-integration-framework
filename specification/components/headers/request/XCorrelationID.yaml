@@ -3,6 +3,6 @@ in: header
 required: false
 description: |
   Tracks a transaction across systems, returned unchanged. Need not be
-  unique per call. A retry carries the same value.
+  unique per call. A retry repeats the same value.
 schema:
   type: string

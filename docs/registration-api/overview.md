@@ -48,7 +48,7 @@ upstream, so its membership is fixed before any registration request is sent.
   registration. It answers two questions:
   - Is the Task well formed, with its required fields present and valid?
   - Does it relate to a registration that exists and was issued?
-- Lifecycle Tasks carry `status` from the FHIR set and the domain state in
+- Lifecycle Tasks give `status` from the FHIR set and the domain state in
   `businessStatus`. Registered, rejected, activated and deactivated are
   business states, not FHIR ones.
 - HealthStore is lenient about sequence. A Task that arrives out of order, or
@@ -71,7 +71,7 @@ upstream, so its membership is fixed before any registration request is sent.
 
 ![Registration sequence](registration-sequence.png)
 
-The registration request carries no clinical content, only enough to say what to
+The registration request contains no clinical content, only enough to say what to
 retrieve. Neither case identifies the patient; the identifier is the
 registration's.
 
@@ -108,7 +108,7 @@ basis as consent.
 - The retrieval identifies a ServiceRequest whose status is `revoked`.
 - A Task is submitted with that express intent.
 
-**Confirming it.** A Task against the ServiceRequest carrying `businessStatus`
+**Confirming it.** A Task against the ServiceRequest with `businessStatus`
 `deactivated`, as acceptance and activation are.
 
 **Platform-initiated.** Also a Task against the ServiceRequest. The platform

@@ -2,7 +2,7 @@ name: X-Request-ID
 in: header
 required: true
 description: |
-  A GUID for this request, mirrored back in the response. A retry carries
+  A GUID for this request, mirrored back in the response. A retry repeats
   the same value.
 schema:
   type: string
