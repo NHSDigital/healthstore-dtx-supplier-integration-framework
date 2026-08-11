@@ -21,7 +21,7 @@ Implemented by HealthStore, called by the platform.
 |---|---|---|---|
 | `GET` | `/registrations/{registration-id}` | | The `ServiceRequest` |
 | `GET` | `/registrations?_count={n}&cohort={cohort-id}` | | A `searchset` Bundle of ServiceRequests |
-| `POST` | `/registrations/{registration-id}/tasks` | A lifecycle `Task`: registered, rejected, activated, deactivated | Not yet defined |
+| `POST` | `/registrations/{registration-id}/tasks` | A lifecycle `Task`: registered, rejected, activated, deactivated. A rejection gives a reason in `statusReason` | Not yet defined |
 
 ### Worklist retrieval
 

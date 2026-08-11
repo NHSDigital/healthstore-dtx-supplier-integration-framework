@@ -17,15 +17,34 @@ post:
       application/fhir+json:
         schema:
           $ref: '../schemas/LifecycleTask.yaml'
-        example:
-          resourceType: Task
-          status: accepted
-          intent: order
-          businessStatus:
-            coding:
-              - system: 'https://fhir.healthstore.nhs.uk/CodeSystem/registration-business-status'
-                code: registered
-                display: Registered
+        examples:
+          registered:
+            summary: Registered
+            value:
+              resourceType: Task
+              status: accepted
+              intent: order
+              businessStatus:
+                coding:
+                  - system: 'https://fhir.healthstore.nhs.uk/CodeSystem/registration-business-status'
+                    code: registered
+                    display: Registered
+          rejected:
+            summary: Rejected, with a reason
+            value:
+              resourceType: Task
+              status: rejected
+              intent: order
+              businessStatus:
+                coding:
+                  - system: 'https://fhir.healthstore.nhs.uk/CodeSystem/registration-business-status'
+                    code: rejected
+                    display: Rejected
+              statusReason:
+                coding:
+                  - system: 'https://fhir.healthstore.nhs.uk/CodeSystem/rejection-reason'
+                    code: not-licensed
+                    display: Not licensed for the commissioning body
   responses:
     '200':
       description: |

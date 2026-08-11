@@ -1,7 +1,8 @@
 title: LifecycleTask
 description: |
   A lifecycle Task reported against the registration. status takes a
-  task-status value and businessStatus carries the domain state.
+  task-status value, businessStatus gives the domain state, and statusReason
+  gives the reason where the platform rejected the registration.
 type: object
 required:
   - resourceType
@@ -42,3 +43,5 @@ properties:
       - option
   businessStatus:
     $ref: '../codesystems/BusinessStatus.yaml'
+  statusReason:
+    $ref: '../codesystems/RejectionReason.yaml'
