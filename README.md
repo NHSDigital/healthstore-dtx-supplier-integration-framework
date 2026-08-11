@@ -11,13 +11,8 @@ specs, schemas, examples and tests.
 
 ## Examples
 
-Runnable examples of both sides of the registration contract:
-
 - [reference-supplier](examples/reference-supplier): a supplier platform
   with server and client code generated from the specification.
-- [healthstore-simulator](examples/healthstore-simulator): an in-memory
-  Health Store stand-in that sends registration requests and serves the
-  Registrations API; see its [README](examples/healthstore-simulator/README.md).
 
 ## Validating the specs
 

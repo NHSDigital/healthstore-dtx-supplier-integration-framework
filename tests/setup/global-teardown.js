@@ -28,8 +28,7 @@ module.exports = async function globalTeardown() {
   for (const { pid } of [...services].reverse()) killSilently(pid);
 
   // Requests aren't blocked at the proxy (see global-setup.js), so this log scrape
-  // is the only thing that catches a spec violation — including on calls the
-  // tests never directly assert on, like the simulator's own outbound requests.
+  // is the only thing that catches a spec violation.
   const violations = services
     .filter(({ name }) => name.endsWith('-proxy'))
     .flatMap(({ name, logFile }) => extractViolations(name, logFile));
