@@ -1,0 +1,66 @@
+post:
+  operationId: postRegistrationTask
+  tags:
+    - lifecycle
+  summary: Submit a lifecycle Task against a registration
+  description: |
+    Records a lifecycle Task against the registration: registered, rejected,
+    activated or deactivated. The response concerns the Task, not the
+    registration. Only a malformed Task or an unknown identifier is refused.
+  parameters:
+    - $ref: '../pathParameters/RegistrationId.yaml'
+    - $ref: '../headers/request/XRequestID.yaml'
+    - $ref: '../headers/request/XCorrelationID.yaml'
+  requestBody:
+    required: true
+    content:
+      application/fhir+json:
+        schema:
+          $ref: '../schemas/LifecycleTask.yaml'
+        examples:
+          registered:
+            summary: Registered
+            value:
+              resourceType: Task
+              status: accepted
+              intent: order
+              businessStatus:
+                coding:
+                  - system: 'https://fhir.healthstore.nhs.uk/CodeSystem/registration-business-status'
+                    code: registered
+                    display: Registered
+          rejected:
+            summary: Rejected, with a reason
+            value:
+              resourceType: Task
+              status: rejected
+              intent: order
+              businessStatus:
+                coding:
+                  - system: 'https://fhir.healthstore.nhs.uk/CodeSystem/registration-business-status'
+                    code: rejected
+                    display: Rejected
+              statusReason:
+                coding:
+                  - system: 'https://fhir.healthstore.nhs.uk/CodeSystem/rejection-reason'
+                    code: not-licensed
+                    display: Not licensed for the commissioning body
+  responses:
+    '200':
+      description: |
+        The Task was recorded. The body of this response is not yet defined.
+      headers:
+        X-Request-ID:
+          $ref: '../headers/response/XRequestID.yaml'
+        X-Correlation-ID:
+          $ref: '../headers/response/XCorrelationID.yaml'
+    '400':
+      $ref: '../responses/BadRequest.yaml'
+    '401':
+      $ref: '../responses/Unauthorized.yaml'
+    '404':
+      $ref: '../responses/NotFound.yaml'
+    '429':
+      $ref: '../responses/TooManyRequests.yaml'
+    '503':
+      $ref: '../responses/ServiceUnavailable.yaml'

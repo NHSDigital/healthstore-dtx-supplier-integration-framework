@@ -1,0 +1,79 @@
+title: ProcessSpecificServiceRequestTask
+description: |
+  A registration request for one registration. focus names the registration
+  and groupIdentifier is absent.
+type: object
+required:
+  - resourceType
+  - identifier
+  - status
+  - intent
+  - code
+  - priority
+  - authoredOn
+  - focus
+not:
+  required:
+    - groupIdentifier
+properties:
+  resourceType:
+    type: string
+    enum:
+      - Task
+  identifier:
+    type: array
+    minItems: 1
+    maxItems: 1
+    items:
+      $ref: '../identifiers/RegistrationRequestIdentifier.yaml'
+  status:
+    type: string
+    enum:
+      - requested
+  intent:
+    type: string
+    enum:
+      - order
+  code:
+    type: object
+    description: The scope of the registration request.
+    required:
+      - coding
+    properties:
+      coding:
+        type: array
+        minItems: 1
+        maxItems: 1
+        items:
+          type: object
+          required:
+            - system
+            - code
+          properties:
+            system:
+              type: string
+              enum:
+                - 'https://fhir.healthstore.nhs.uk/CodeSystem/task-code'
+            code:
+              type: string
+              enum:
+                - process-specific-service-request
+            display:
+              type: string
+              enum:
+                - Process specific service request
+  priority:
+    $ref: './RequestPriority.yaml'
+  authoredOn:
+    type: string
+    format: date-time
+    description: |
+      When the registration request was created. Stable across redeliveries.
+  focus:
+    type: object
+    description: The registration, referenced by identifier or by URL.
+    properties:
+      reference:
+        type: string
+      identifier:
+        $ref: '../identifiers/RegistrationIdentifier.yaml'

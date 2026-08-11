@@ -3,43 +3,32 @@
 Contract repository for DTx-supplier integration with the Health Store:
 specs, schemas, examples and tests.
 
-A starter for ten. Expected to evolve.
+## Registration API
 
-## API shape
+- [Overview](docs/registration-api/overview.md)
+- [FHIR resources and fields](docs/registration-api/fhir.md)
+- [Resources and paths](docs/registration-api/resources.md)
 
-Inbound REST API hosted by the Health Store, FHIR-aligned, defined by an OpenAPI spec.
+## Examples
 
-## Scope
+- [reference-supplier](examples/reference-supplier): a supplier platform
+  with server and client code generated from the specification.
 
-In scope:
+## Validating the specs
 
-- **Schemas**: the OpenAPI specification and FHIR-aligned resource definitions.
-- **Docs**: cross-cutting semantics held as standalone prose, referenced from the spec.
-- **Examples**: concrete payloads per operation, plus narrative end-to-end flows.
-- **Tests**: validators and tooling that exercise the artefacts in this repo.
+The OpenAPI documents under `specification/` and `schemas/` are linted with
+[Spectral](https://github.com/stoplightio/spectral), configured in
+`.spectral.yaml`.
 
-Out of scope:
-
-- Runtime code, deployment.
-- Finalised change-control and CI/validation wiring (added in later passes).
-
-## Conventions we expect to adopt
-
-- **Contract as source of truth.** Runtime code conforms to the OpenAPI spec and schemas here.
-- **Examples discipline.** Every operation has at least one concrete payload example, validated against the schemas.
-
-## Top-level layout
-
-```
-schemas/   # OpenAPI + FHIR resource schemas (contract source of truth)
-docs/      # cross-cutting semantics, decision records
-examples/  # payload examples + narrative flows
-tests/     # validators and contract-test collections
+```sh
+npm install
+npm run lint:spec
 ```
 
 ## How to contribute
 
-- Raise an issue or open a PR; see `.github/PULL_REQUEST_TEMPLATE.md`.
+- NHS Digital: raise an issue or open a PR; see `.github/PULL_REQUEST_TEMPLATE.md`.
+- Collaborators: fork the repository and open a pull request.
 - Review ownership: `.github/CODEOWNERS`.
 - Security disclosure: `.github/SECURITY.md`.
 

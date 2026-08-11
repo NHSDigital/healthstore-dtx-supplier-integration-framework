@@ -1,0 +1,40 @@
+openapi: 3.0.3
+info:
+  title: Supplier API
+  version: 0.1.0
+  description: |
+    Implemented by third party digital therapeutics platforms and called by NHS HealthStore.
+    Receives registration request Tasks naming what to retrieve from the
+    Registrations API.
+  contact:
+    name: NHS HealthStore
+  license:
+    name: MIT
+    url: https://github.com/NHSDigital/healthstore-dtx-supplier-integration-framework/blob/main/LICENCE.md
+servers:
+  - url: https://dtx-platform.example
+    description: Representative. Base paths are not yet set.
+tags:
+  - name: authentication
+    description: Access tokens issued by the platform to NHS HealthStore.
+  - name: registration-requests
+    description: Registration requests sent by NHS HealthStore.
+security:
+  - clientCredentials: []
+paths:
+  /oauth/token:
+    $ref: './components/endpoints/postOAuthToken.yaml'
+  /healthstore-registration-requests:
+    $ref: './components/endpoints/postRegistrationRequest.yaml'
+components:
+  securitySchemes:
+    clientCredentials:
+      type: oauth2
+      description: |
+        OAuth 2.0 client credentials, issued by the platform to NHS HealthStore.
+        Client authentication is client_secret_post.
+        No scopes: the API has one operation and one caller.
+      flows:
+        clientCredentials:
+          tokenUrl: /oauth/token
+          scopes: {}

@@ -1,0 +1,96 @@
+post:
+  operationId: postOAuthToken
+  tags:
+    - authentication
+  summary: Issue an access token
+  description: |
+    OAuth 2.0 client credentials grant, client_secret_post. Unauthenticated.
+    Called by NHS HealthStore with credentials the platform has issued to it.
+  security: []
+  requestBody:
+    required: true
+    content:
+      application/x-www-form-urlencoded:
+        schema:
+          type: object
+          required:
+            - grant_type
+            - client_id
+            - client_secret
+          properties:
+            grant_type:
+              type: string
+              enum:
+                - client_credentials
+            client_id:
+              type: string
+              description: Issued by the platform to NHS HealthStore.
+            client_secret:
+              type: string
+              description: Issued by the platform to NHS HealthStore.
+  responses:
+    '200':
+      description: An access token.
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - access_token
+              - token_type
+              - expires_in
+            properties:
+              access_token:
+                type: string
+              token_type:
+                type: string
+                enum:
+                  - Bearer
+              expires_in:
+                type: integer
+                description: Seconds until the token expires.
+          example:
+            access_token: eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9...
+            token_type: Bearer
+            expires_in: 3600
+    '400':
+      description: |
+        An OAuth 2.0 error response. Malformed request, unsupported grant,
+        or failed client authentication with client_secret_post.
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - error
+            properties:
+              error:
+                type: string
+                enum:
+                  - invalid_request
+                  - invalid_client
+                  - invalid_grant
+                  - unauthorized_client
+                  - unsupported_grant_type
+              error_description:
+                type: string
+          example:
+            error: invalid_request
+    '401':
+      description: |
+        An OAuth 2.0 error response. Client authentication failed.
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - error
+            properties:
+              error:
+                type: string
+                enum:
+                  - invalid_client
+              error_description:
+                type: string
+          example:
+            error: invalid_client

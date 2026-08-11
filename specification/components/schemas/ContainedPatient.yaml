@@ -1,0 +1,90 @@
+title: ContainedPatient
+description: |
+  The patient, contained within the ServiceRequest. Conforms to
+  UKCore-Patient 2.5.0.
+type: object
+required:
+  - resourceType
+  - id
+  - identifier
+  - name
+  - telecom
+  - gender
+  - birthDate
+  - generalPractitioner
+properties:
+  resourceType:
+    type: string
+    enum:
+      - Patient
+  id:
+    type: string
+    description: The target of ServiceRequest.subject.reference.
+  identifier:
+    type: array
+    minItems: 1
+    maxItems: 1
+    items:
+      $ref: '../identifiers/NhsNumberIdentifier.yaml'
+  name:
+    type: array
+    minItems: 1
+    maxItems: 1
+    description: The official name.
+    items:
+      type: object
+      required:
+        - use
+        - family
+        - given
+      properties:
+        use:
+          type: string
+          enum:
+            - official
+        family:
+          type: string
+        given:
+          type: array
+          minItems: 1
+          items:
+            type: string
+  telecom:
+    type: array
+    minItems: 2
+    maxItems: 2
+    description: |
+      One email and one phone. The server validates the pairing; the schema
+      alone cannot express it. use is required on email, fixed to home, and
+      optional on phone.
+    items:
+      oneOf:
+        - $ref: './EmailContactPoint.yaml'
+        - $ref: './PhoneContactPoint.yaml'
+  gender:
+    type: string
+    enum:
+      - male
+      - female
+      - other
+      - unknown
+  birthDate:
+    type: string
+    format: date
+  address:
+    type: array
+    items:
+      type: object
+      properties:
+        country:
+          type: string
+          enum:
+            - GB
+          description: ISO 3166-1 alpha-2.
+  generalPractitioner:
+    type: array
+    minItems: 1
+    maxItems: 1
+    description: The registered GP practice.
+    items:
+      $ref: './OdsReference.yaml'

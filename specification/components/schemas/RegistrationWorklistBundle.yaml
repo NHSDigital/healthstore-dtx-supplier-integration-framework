@@ -1,0 +1,42 @@
+title: RegistrationWorklistBundle
+description: |
+  Up to _count registrations awaiting action from the platform.
+type: object
+required:
+  - resourceType
+  - type
+  - link
+properties:
+  resourceType:
+    type: string
+    enum:
+      - Bundle
+  type:
+    type: string
+    enum:
+      - searchset
+  link:
+    type: array
+    minItems: 1
+    maxItems: 1
+    items:
+      type: object
+      required:
+        - relation
+        - url
+      properties:
+        relation:
+          type: string
+          enum:
+            - self
+        url:
+          type: string
+  entry:
+    type: array
+    items:
+      type: object
+      required:
+        - resource
+      properties:
+        resource:
+          $ref: './RegistrationServiceRequest.yaml'

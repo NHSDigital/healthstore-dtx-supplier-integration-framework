@@ -1,0 +1,7 @@
+title: RegistrationRequestTask
+description: |
+  A registration request Task. Conforms to base FHIR R4 Task. code states
+  the scope, and code, focus and groupIdentifier agree.
+oneOf:
+  - $ref: './ProcessSpecificServiceRequestTask.yaml'
+  - $ref: './ProcessAvailableServiceRequestsTask.yaml'

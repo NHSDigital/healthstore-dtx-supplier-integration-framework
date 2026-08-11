@@ -1,0 +1,39 @@
+description: |
+  The request is invalid.
+
+  | Error code | Description |
+  |---|---|
+  | INVALID_FHIR_STRUCTURE | Body is not valid FHIR |
+  | MISSING_VALUE | A required element is absent |
+  | INVALID_VALUE | An element is the wrong type or format |
+  | INVALID_CODE | An element has a value outside its value set |
+  | MISSING_HEADER | A required header is absent |
+  | MISSING_PARAMETER | A required query parameter is absent |
+headers:
+  X-Request-ID:
+    $ref: '../headers/response/XRequestID.yaml'
+  X-Correlation-ID:
+    $ref: '../headers/response/XCorrelationID.yaml'
+content:
+  application/fhir+json:
+    schema:
+      $ref: '../schemas/OperationOutcome.yaml'
+    example:
+      resourceType: OperationOutcome
+      issue:
+        - severity: error
+          code: required
+          details:
+            coding:
+              - code: MISSING_VALUE
+          diagnostics: authoredOn is required and is absent
+          expression:
+            - Task.authoredOn
+        - severity: error
+          code: code-invalid
+          details:
+            coding:
+              - code: INVALID_CODE
+          diagnostics: urgent is not in the constrained priority set (routine, asap)
+          expression:
+            - Task.priority

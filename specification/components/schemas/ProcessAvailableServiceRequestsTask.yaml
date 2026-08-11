@@ -1,0 +1,73 @@
+title: ProcessAvailableServiceRequestsTask
+description: |
+  A registration request for the registrations of a cohort. groupIdentifier
+  names the cohort and focus is absent.
+type: object
+required:
+  - resourceType
+  - identifier
+  - status
+  - intent
+  - code
+  - priority
+  - authoredOn
+  - groupIdentifier
+not:
+  required:
+    - focus
+properties:
+  resourceType:
+    type: string
+    enum:
+      - Task
+  identifier:
+    type: array
+    minItems: 1
+    maxItems: 1
+    items:
+      $ref: '../identifiers/RegistrationRequestIdentifier.yaml'
+  status:
+    type: string
+    enum:
+      - requested
+  intent:
+    type: string
+    enum:
+      - order
+  code:
+    type: object
+    description: The scope of the registration request.
+    required:
+      - coding
+    properties:
+      coding:
+        type: array
+        minItems: 1
+        maxItems: 1
+        items:
+          type: object
+          required:
+            - system
+            - code
+          properties:
+            system:
+              type: string
+              enum:
+                - 'https://fhir.healthstore.nhs.uk/CodeSystem/task-code'
+            code:
+              type: string
+              enum:
+                - process-available-service-requests
+            display:
+              type: string
+              enum:
+                - Process available service requests
+  priority:
+    $ref: './RequestPriority.yaml'
+  authoredOn:
+    type: string
+    format: date-time
+    description: |
+      When the registration request was created. Stable across redeliveries.
+  groupIdentifier:
+    $ref: '../identifiers/CohortIdentifier.yaml'

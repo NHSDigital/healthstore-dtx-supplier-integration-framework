@@ -1,0 +1,55 @@
+title: AcceptedRegistrationRequestTask
+description: |
+  The registration request Task returned on acknowledgement: the same Task
+  with its status set to accepted, its identifier echoed unchanged, and
+  lastModified set.
+type: object
+required:
+  - resourceType
+  - identifier
+  - status
+  - intent
+  - code
+  - priority
+  - authoredOn
+  - lastModified
+properties:
+  resourceType:
+    type: string
+    enum:
+      - Task
+  identifier:
+    type: array
+    minItems: 1
+    maxItems: 1
+    items:
+      $ref: '../identifiers/RegistrationRequestIdentifier.yaml'
+  status:
+    type: string
+    enum:
+      - accepted
+  intent:
+    type: string
+    enum:
+      - order
+  code:
+    $ref: '../codesystems/TaskCode.yaml'
+  priority:
+    $ref: './RequestPriority.yaml'
+  authoredOn:
+    type: string
+    format: date-time
+  focus:
+    type: object
+    description: The registration, referenced by identifier or by URL.
+    properties:
+      reference:
+        type: string
+      identifier:
+        $ref: '../identifiers/RegistrationIdentifier.yaml'
+  groupIdentifier:
+    $ref: '../identifiers/CohortIdentifier.yaml'
+  lastModified:
+    type: string
+    format: date-time
+    description: When the platform accepted.

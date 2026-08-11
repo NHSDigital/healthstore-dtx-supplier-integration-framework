@@ -1,0 +1,98 @@
+post:
+  operationId: postRegistrationRequest
+  tags:
+    - registration-requests
+  summary: Receive a registration request
+  description: |
+    Receives a registration request Task naming what to retrieve from the
+    Registrations API: one registration, or a cohort's registrations.
+  parameters:
+    - $ref: '../headers/request/XRequestID.yaml'
+    - $ref: '../headers/request/XCorrelationID.yaml'
+  requestBody:
+    required: true
+    content:
+      application/fhir+json:
+        schema:
+          $ref: '../schemas/RegistrationRequestTask.yaml'
+        examples:
+          specific-service-request:
+            summary: Process specific service request
+            value:
+              resourceType: Task
+              identifier:
+                - system: 'https://fhir.healthstore.nhs.uk/Id/registration-request'
+                  value: 5f3c1b0e-9d4a-4c7b-8e21-64b0a1f2c9d7
+              status: requested
+              intent: order
+              code:
+                coding:
+                  - system: 'https://fhir.healthstore.nhs.uk/CodeSystem/task-code'
+                    code: process-specific-service-request
+                    display: Process specific service request
+              priority: asap
+              authoredOn: '2026-08-05T10:15:00Z'
+              focus:
+                identifier:
+                  system: 'https://fhir.healthstore.nhs.uk/Id/registration'
+                  value: 0b93b9a2-6ac2-4d31-a3d0-7c3ef1a29a3f
+          available-service-requests:
+            summary: Process available service requests
+            value:
+              resourceType: Task
+              identifier:
+                - system: 'https://fhir.healthstore.nhs.uk/Id/registration-request'
+                  value: 8a2d9c44-1f6b-4a3e-9c05-2d7e8f9a0b1c
+              status: requested
+              intent: order
+              code:
+                coding:
+                  - system: 'https://fhir.healthstore.nhs.uk/CodeSystem/task-code'
+                    code: process-available-service-requests
+                    display: Process available service requests
+              priority: routine
+              authoredOn: '2026-08-05T06:00:00Z'
+              groupIdentifier:
+                system: 'https://fhir.healthstore.nhs.uk/Id/cohort'
+                value: cohort-example-001
+  responses:
+    '200':
+      description: |
+        The Task with its status set to accepted, its identifier echoed
+        unchanged, and lastModified set.
+      headers:
+        X-Request-ID:
+          $ref: '../headers/response/XRequestID.yaml'
+        X-Correlation-ID:
+          $ref: '../headers/response/XCorrelationID.yaml'
+      content:
+        application/fhir+json:
+          schema:
+            $ref: '../schemas/AcceptedRegistrationRequestTask.yaml'
+          example:
+            resourceType: Task
+            identifier:
+              - system: 'https://fhir.healthstore.nhs.uk/Id/registration-request'
+                value: 5f3c1b0e-9d4a-4c7b-8e21-64b0a1f2c9d7
+            status: accepted
+            intent: order
+            code:
+              coding:
+                - system: 'https://fhir.healthstore.nhs.uk/CodeSystem/task-code'
+                  code: process-specific-service-request
+                  display: Process specific service request
+            priority: asap
+            authoredOn: '2026-08-05T10:15:00Z'
+            focus:
+              identifier:
+                system: 'https://fhir.healthstore.nhs.uk/Id/registration'
+                value: 0b93b9a2-6ac2-4d31-a3d0-7c3ef1a29a3f
+            lastModified: '2026-08-05T10:15:02Z'
+    '400':
+      $ref: '../responses/BadRequest.yaml'
+    '401':
+      $ref: '../responses/Unauthorized.yaml'
+    '429':
+      $ref: '../responses/TooManyRequests.yaml'
+    '503':
+      $ref: '../responses/ServiceUnavailable.yaml'

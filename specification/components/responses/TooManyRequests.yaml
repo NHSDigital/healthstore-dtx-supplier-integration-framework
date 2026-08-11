@@ -1,0 +1,26 @@
+description: |
+  Rate exceeded.
+
+  | Error code | Description |
+  |---|---|
+  | TOO_MANY_REQUESTS | Rate exceeded |
+headers:
+  Retry-After:
+    $ref: '../headers/response/RetryAfter.yaml'
+  X-Request-ID:
+    $ref: '../headers/response/XRequestID.yaml'
+  X-Correlation-ID:
+    $ref: '../headers/response/XCorrelationID.yaml'
+content:
+  application/fhir+json:
+    schema:
+      $ref: '../schemas/OperationOutcome.yaml'
+    example:
+      resourceType: OperationOutcome
+      issue:
+        - severity: error
+          code: throttled
+          details:
+            coding:
+              - code: TOO_MANY_REQUESTS
+          diagnostics: Rate exceeded

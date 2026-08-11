@@ -1,0 +1,42 @@
+openapi: 3.0.3
+info:
+  title: Registrations API
+  version: 0.1.0
+  description: |
+    Implemented by NHS HealthStore and called by digital therapeutics platforms. Serves
+    registrations as ServiceRequests and receives lifecycle Tasks reported
+    against them.
+  contact:
+    name: NHS HealthStore
+  license:
+    name: MIT
+    url: https://github.com/NHSDigital/healthstore-dtx-supplier-integration-framework/blob/main/LICENCE.md
+servers:
+  - url: https://api.healthstore.nhs.uk
+    description: Representative. Base paths are not yet set.
+tags:
+  - name: lifecycle
+    description: Lifecycle Tasks reported against a registration.
+  - name: registrations
+    description: Registrations retrieved by the supplier platform.
+security:
+  - clientCredentials: []
+paths:
+  /registrations:
+    $ref: './components/endpoints/fetchRegistrationWorklist.yaml'
+  /registrations/{registration-id}:
+    $ref: './components/endpoints/getRegistration.yaml'
+  /registrations/{registration-id}/tasks:
+    $ref: './components/endpoints/postRegistrationTask.yaml'
+components:
+  securitySchemes:
+    clientCredentials:
+      type: oauth2
+      description: |
+        OAuth 2.0 client credentials, issued by NHS HealthStore to the platform.
+        Client authentication is client_secret_post. The token endpoint is the
+        auth provider's, issued with the credentials. tokenUrl is representative.
+      flows:
+        clientCredentials:
+          tokenUrl: https://auth.healthstore.nhs.uk/oauth2/token
+          scopes: {}

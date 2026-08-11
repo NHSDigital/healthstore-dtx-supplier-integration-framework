@@ -1,0 +1,47 @@
+title: LifecycleTask
+description: |
+  A lifecycle Task reported against the registration. status takes a
+  task-status value, businessStatus gives the domain state, and statusReason
+  gives the reason where the platform rejected the registration.
+type: object
+required:
+  - resourceType
+  - status
+  - intent
+  - businessStatus
+properties:
+  resourceType:
+    type: string
+    enum:
+      - Task
+  status:
+    type: string
+    enum:
+      - draft
+      - requested
+      - received
+      - accepted
+      - rejected
+      - ready
+      - cancelled
+      - in-progress
+      - on-hold
+      - failed
+      - completed
+      - entered-in-error
+  intent:
+    type: string
+    enum:
+      - unknown
+      - proposal
+      - plan
+      - order
+      - original-order
+      - reflex-order
+      - filler-order
+      - instance-order
+      - option
+  businessStatus:
+    $ref: '../codesystems/BusinessStatus.yaml'
+  statusReason:
+    $ref: '../codesystems/RejectionReason.yaml'

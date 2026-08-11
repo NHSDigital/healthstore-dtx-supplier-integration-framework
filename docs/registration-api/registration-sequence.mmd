@@ -1,0 +1,32 @@
+sequenceDiagram
+    participant HealthStore as NHS HealthStore
+    participant Platform as Supplier platform
+
+    Note over HealthStore,Platform: X-Request-ID header on every request except the token endpoints,<br/>returned in the response headers. A retry sends the same value.
+    Note over HealthStore,Platform: Each side sends its access token as a bearer,<br/>cached against expires_in and re-acquired on expiry or 401.
+
+    HealthStore->>Platform: POST /oauth/token<br/>client_credentials, credentials issued by the platform
+    Platform-->>HealthStore: 200 access token, expires_in
+
+    HealthStore->>Platform: POST /healthstore-registration-requests<br/>Task requested: process-specific-service-request (focus)<br/>or process-available-service-requests (groupIdentifier)
+    Platform-->>HealthStore: 200 Task accepted, identifier echoed, lastModified set
+
+    Platform->>HealthStore: POST the auth provider's token endpoint<br/>client_credentials, credentials issued by NHS HealthStore
+    HealthStore-->>Platform: 200 access token, expires_in
+
+    alt one registration
+        Platform->>HealthStore: GET /registrations/{registration-id}
+        HealthStore-->>Platform: 200 ServiceRequest, Patient contained
+    else a cohort
+        loop until the worklist returns nothing
+            Platform->>HealthStore: GET /registrations?_count&cohort
+            HealthStore-->>Platform: 200 searchset Bundle of ServiceRequests
+        end
+    end
+
+    Platform->>HealthStore: POST /registrations/{registration-id}/tasks<br/>Task: registration registered or rejected
+    HealthStore-->>Platform: 200, the registration leaves the worklist
+
+    Note over HealthStore,Platform: Patient first opens the digital therapeutic
+    Platform->>HealthStore: POST /registrations/{registration-id}/tasks<br/>Task: activation
+    HealthStore-->>Platform: 200

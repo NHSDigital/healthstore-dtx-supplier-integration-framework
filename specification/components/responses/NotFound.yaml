@@ -1,0 +1,24 @@
+description: |
+  The registration or cohort is not known, or is outside the caller's tenancy.
+
+  | Error code | Description |
+  |---|---|
+  | REFERENCE_NOT_FOUND | The registration or cohort is not known, or is outside the caller's tenancy |
+headers:
+  X-Request-ID:
+    $ref: '../headers/response/XRequestID.yaml'
+  X-Correlation-ID:
+    $ref: '../headers/response/XCorrelationID.yaml'
+content:
+  application/fhir+json:
+    schema:
+      $ref: '../schemas/OperationOutcome.yaml'
+    example:
+      resourceType: OperationOutcome
+      issue:
+        - severity: error
+          code: not-found
+          details:
+            coding:
+              - code: REFERENCE_NOT_FOUND
+          diagnostics: The registration is not known

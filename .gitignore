@@ -13,3 +13,8 @@
 # Please, add your custom content below!
 
 .DS_Store
+node_modules/
+
+# Gradle build output, wherever a build lives
+.gradle/
+build/

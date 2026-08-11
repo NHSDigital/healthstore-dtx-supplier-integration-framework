@@ -1,0 +1,94 @@
+get:
+  operationId: fetchRegistrationWorklist
+  tags:
+    - registrations
+  summary: Retrieve the next registrations awaiting action
+  description: |
+    Returns only registrations awaiting action from the platform: those with
+    no lifecycle Task outstanding against their current status. Scoped to the
+    calling platform. cohort narrows the worklist to one cohort; omitted, it
+    covers every registration awaiting the platform's action. Registrations
+    leave the worklist as they are actioned. The platform repeats the call
+    until no registrations are returned.
+  parameters:
+    - $ref: '../queryParameters/Cohort.yaml'
+    - $ref: '../queryParameters/Count.yaml'
+    - $ref: '../headers/request/XRequestID.yaml'
+    - $ref: '../headers/request/XCorrelationID.yaml'
+  responses:
+    '200':
+      description: A searchset Bundle of ServiceRequests.
+      headers:
+        X-Request-ID:
+          $ref: '../headers/response/XRequestID.yaml'
+        X-Correlation-ID:
+          $ref: '../headers/response/XCorrelationID.yaml'
+      content:
+        application/fhir+json:
+          schema:
+            $ref: '../schemas/RegistrationWorklistBundle.yaml'
+          example:
+            resourceType: Bundle
+            type: searchset
+            link:
+              - relation: self
+                url: 'https://api.healthstore.nhs.uk/registrations?cohort=cohort-example-001&_count=50'
+            entry:
+              - resource:
+                  resourceType: ServiceRequest
+                  contained:
+                    - resourceType: Patient
+                      id: patient
+                      identifier:
+                        - system: 'https://fhir.nhs.uk/Id/nhs-number'
+                          value: '9000000009'
+                          extension:
+                            - url: 'https://fhir.hl7.org.uk/StructureDefinition/Extension-UKCore-NHSNumberVerificationStatus'
+                              valueCodeableConcept:
+                                coding:
+                                  - system: 'https://fhir.hl7.org.uk/CodeSystem/UKCore-NHSNumberVerificationStatusEngland'
+                                    code: '01'
+                                    display: Number present and verified
+                      name:
+                        - use: official
+                          family: Smith
+                          given:
+                            - Jane
+                      telecom:
+                        - system: email
+                          value: jane.smith@example.com
+                          use: home
+                        - system: phone
+                          value: '+447700900123'
+                          use: mobile
+                      gender: female
+                      birthDate: '1980-01-15'
+                      generalPractitioner:
+                        - identifier:
+                            system: 'https://fhir.nhs.uk/Id/ods-organization-code'
+                            value: A81001
+                          display: Example Medical Practice
+                  identifier:
+                    - system: 'https://fhir.healthstore.nhs.uk/Id/registration'
+                      value: 7e1f4c8d-2b5a-49e0-8c6f-1d3a9b0e5f27
+                  status: active
+                  intent: order
+                  priority: routine
+                  subject:
+                    reference: '#patient'
+                  authoredOn: '2026-08-04T09:00:00Z'
+                  performer:
+                    - identifier:
+                        system: 'https://fhir.nhs.uk/Id/ods-organization-code'
+                        value: 8JK09
+                      display: Example DTx Provider
+    '400':
+      $ref: '../responses/BadRequest.yaml'
+    '401':
+      $ref: '../responses/Unauthorized.yaml'
+    '404':
+      $ref: '../responses/NotFound.yaml'
+    '429':
+      $ref: '../responses/TooManyRequests.yaml'
+    '503':
+      $ref: '../responses/ServiceUnavailable.yaml'

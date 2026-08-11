@@ -1,0 +1,8 @@
+name: X-Correlation-ID
+in: header
+required: false
+description: |
+  Tracks a transaction across systems, returned unchanged. Need not be
+  unique per call. A retry repeats the same value.
+schema:
+  type: string

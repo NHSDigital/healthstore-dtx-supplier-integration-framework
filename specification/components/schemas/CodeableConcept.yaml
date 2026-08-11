@@ -1,0 +1,9 @@
+title: CodeableConcept
+type: object
+properties:
+  coding:
+    type: array
+    items:
+      $ref: './Coding.yaml'
+  text:
+    type: string
