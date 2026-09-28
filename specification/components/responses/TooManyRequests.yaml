@@ -1,5 +1,7 @@
 description: |
-  Rate exceeded.
+  Rate exceeded. Retryable: wait at least Retry-After seconds. Limits are
+  per-credential abuse guards, set generously above expected sign-in
+  volumes; see docs/registration-api/resources.md.
 
   | Error code | Description |
   |---|---|

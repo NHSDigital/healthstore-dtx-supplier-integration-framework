@@ -1,9 +1,11 @@
 description: |
-  The registration or cohort is not known, or is outside the caller's tenancy.
+  The registration is not known, or is not the calling credential's.
+  Terminal: a registration that does not exist for this credential will
+  not appear later.
 
   | Error code | Description |
   |---|---|
-  | REFERENCE_NOT_FOUND | The registration or cohort is not known, or is outside the caller's tenancy |
+  | REFERENCE_NOT_FOUND | The registration is not known, or is not the calling credential's |
 headers:
   X-Request-ID:
     $ref: '../headers/response/XRequestID.yaml'

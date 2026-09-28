@@ -3,6 +3,12 @@ description: |
   Returned on every error, with one issue per problem found. expression names
   the element at fault, the contract's error code goes in details, and
   specifics go in diagnostics.
+
+  Every code is classed terminal or retryable. 4xx codes are terminal: fix
+  the request, or for the ID token codes re-authenticate the patient, before
+  retrying. 429 is retryable after Retry-After. 503 and timeouts are
+  retryable with backoff; retrieval is read-only, so nothing is lost
+  mid-flight.
 type: object
 required:
   - resourceType
@@ -83,9 +89,13 @@ properties:
                       - INVALID_VALUE
                       - INVALID_CODE
                       - MISSING_HEADER
-                      - MISSING_PARAMETER
                       - REFERENCE_NOT_FOUND
                       - NO_ACCESS
+                      - TOKEN_INVALID
+                      - TOKEN_EXPIRED
+                      - WRONG_AUDIENCE
+                      - PROOFING_BELOW_P9
+                      - NHS_NUMBER_MISSING
                       - TOO_MANY_REQUESTS
                       - SYSTEM_UNAVAILABLE
                   display:

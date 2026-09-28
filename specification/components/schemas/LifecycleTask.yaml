@@ -1,8 +1,13 @@
 title: LifecycleTask
 description: |
-  A lifecycle Task reported against the registration. status takes a
-  task-status value, businessStatus gives the domain state, and statusReason
-  gives the reason where the platform rejected the registration.
+  A lifecycle Task acknowledging the registration. status takes a
+  task-status value and describes the Task itself; businessStatus gives
+  the registration's state; statusReason gives the coded reason.
+
+  Rules the schema alone cannot express, checked by HealthStore:
+  already-registered is valid only with businessStatus registered; every
+  other statusReason is valid only with rejected, where a statusReason is
+  required; note is required where statusReason is other.
 type: object
 required:
   - resourceType
@@ -44,4 +49,16 @@ properties:
   businessStatus:
     $ref: '../codesystems/BusinessStatus.yaml'
   statusReason:
-    $ref: '../codesystems/RejectionReason.yaml'
+    $ref: '../codesystems/AcknowledgementReason.yaml'
+  note:
+    type: array
+    minItems: 1
+    description: Required where statusReason is other. Free text, no patient data.
+    items:
+      type: object
+      required:
+        - text
+      properties:
+        text:
+          type: string
+          minLength: 1

@@ -1,12 +1,34 @@
 post:
   operationId: postRegistrationTask
   tags:
-    - lifecycle
-  summary: Submit a lifecycle Task against a registration
+    - registration outcomes
+  summary: Report a registration's outcome
   description: |
-    Records a lifecycle Task against the registration: registered, rejected,
-    activated or deactivated. The response concerns the Task, not the
-    registration. Only a malformed Task or an unknown identifier is refused.
+    Records the DTx platform's outcome for one registration, as a lifecycle
+    Task: businessStatus registered, or rejected with a coded statusReason.
+    Sent from inside the patient's NHS login session, after retrieval and
+    the DTx platform's own checks and account write.
+
+    registered proves the patient has signed in: the Task can only be sent
+    from inside the patient's authenticated session. It also carries
+    statusReason already-registered where the DTx platform linked an account it
+    already held for this patient and intervention; that is a success, and
+    the registration counts as fulfilled.
+
+    Repeats are no-ops. A Task for a registration already acknowledged with
+    the same businessStatus returns 200 and changes nothing. A DTx platform that
+    fails between its account write and this call resends registered at the
+    next sign-in.
+
+    Only a malformed Task or an unknown registration is refused. The 200
+    response has no body; the status code is the acknowledgement.
+
+    While the /tasks endpoint is built to receive lifecycle events asynchronously,
+    the endpoint MUST be used to synchronously confirm whether registrations retrieved
+    on-demand during an NHS login event were registered or rejected.
+
+    Activation, deactivation and off-boarding follow in the lifecycle specification as a
+    versioned change on this path.
   parameters:
     - $ref: '../pathParameters/RegistrationId.yaml'
     - $ref: '../headers/request/XRequestID.yaml'
@@ -26,29 +48,80 @@ post:
               intent: order
               businessStatus:
                 coding:
-                  - system: 'https://fhir.healthstore.nhs.uk/CodeSystem/registration-business-status'
+                  - system: 'https://fhir.dtx.national.nhs.uk/CodeSystem/registration-business-status'
                     code: registered
                     display: Registered
-          rejected:
-            summary: Rejected, with a reason
+          already-registered:
+            summary: Registered by linking an account the DTx platform already held
+            value:
+              resourceType: Task
+              status: accepted
+              intent: order
+              businessStatus:
+                coding:
+                  - system: 'https://fhir.dtx.national.nhs.uk/CodeSystem/registration-business-status'
+                    code: registered
+                    display: Registered
+              statusReason:
+                coding:
+                  - system: 'https://fhir.dtx.national.nhs.uk/CodeSystem/acknowledgement-reason'
+                    code: already-registered
+                    display: Patient already registered; existing account linked
+          licence-exhausted:
+            summary: Rejected, no licence available
             value:
               resourceType: Task
               status: rejected
               intent: order
               businessStatus:
                 coding:
-                  - system: 'https://fhir.healthstore.nhs.uk/CodeSystem/registration-business-status'
+                  - system: 'https://fhir.dtx.national.nhs.uk/CodeSystem/registration-business-status'
                     code: rejected
                     display: Rejected
               statusReason:
                 coding:
-                  - system: 'https://fhir.healthstore.nhs.uk/CodeSystem/rejection-reason'
-                    code: not-licensed
-                    display: Not licensed for the commissioning body
+                  - system: 'https://fhir.dtx.national.nhs.uk/CodeSystem/acknowledgement-reason'
+                    code: licence-exhausted
+                    display: No licence available
+          intervention-not-configured:
+            summary: Rejected, intervention not configured for the commissioning organisation
+            value:
+              resourceType: Task
+              status: rejected
+              intent: order
+              businessStatus:
+                coding:
+                  - system: 'https://fhir.dtx.national.nhs.uk/CodeSystem/registration-business-status'
+                    code: rejected
+                    display: Rejected
+              statusReason:
+                coding:
+                  - system: 'https://fhir.dtx.national.nhs.uk/CodeSystem/acknowledgement-reason'
+                    code: intervention-not-configured
+                    display: Intervention not configured for the commissioning organisation
+          other:
+            summary: Rejected for another reason, with the required note
+            value:
+              resourceType: Task
+              status: rejected
+              intent: order
+              businessStatus:
+                coding:
+                  - system: 'https://fhir.dtx.national.nhs.uk/CodeSystem/registration-business-status'
+                    code: rejected
+                    display: Rejected
+              statusReason:
+                coding:
+                  - system: 'https://fhir.dtx.national.nhs.uk/CodeSystem/acknowledgement-reason'
+                    code: other
+                    display: Other reason, see note
+              note:
+                - text: Patient is under 16 and the product is licensed for adults only
   responses:
     '200':
       description: |
-        The Task was recorded. The body of this response is not yet defined.
+        The Task was recorded, or was a repeat of one already recorded. No
+        body.
       headers:
         X-Request-ID:
           $ref: '../headers/response/XRequestID.yaml'

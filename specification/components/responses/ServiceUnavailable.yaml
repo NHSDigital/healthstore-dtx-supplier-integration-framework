@@ -1,5 +1,7 @@
 description: |
-  Unavailable.
+  Unavailable. Retryable with exponential backoff. Retrieval is read-only,
+  so a call lost here costs nothing: the registration stays open and is
+  returned at the next sign-in.
 
   | Error code | Description |
   |---|---|

@@ -1,5 +1,5 @@
 description: |
-  The request is invalid.
+  The request is invalid. Terminal: correct the request before retrying.
 
   | Error code | Description |
   |---|---|
@@ -8,7 +8,6 @@ description: |
   | INVALID_VALUE | An element is the wrong type or format |
   | INVALID_CODE | An element has a value outside its value set |
   | MISSING_HEADER | A required header is absent |
-  | MISSING_PARAMETER | A required query parameter is absent |
 headers:
   X-Request-ID:
     $ref: '../headers/response/XRequestID.yaml'
@@ -26,14 +25,14 @@ content:
           details:
             coding:
               - code: MISSING_VALUE
-          diagnostics: authoredOn is required and is absent
+          diagnostics: note is required where statusReason is other
           expression:
-            - Task.authoredOn
+            - Task.note
         - severity: error
           code: code-invalid
           details:
             coding:
               - code: INVALID_CODE
-          diagnostics: urgent is not in the constrained priority set (routine, asap)
+          diagnostics: duplicate is not in the acknowledgement-reason set
           expression:
-            - Task.priority
+            - Task.statusReason

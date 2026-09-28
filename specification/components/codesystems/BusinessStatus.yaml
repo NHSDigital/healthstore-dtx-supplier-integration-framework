@@ -1,8 +1,9 @@
 title: BusinessStatus
 description: |
-  The domain state of the registration, reported by the platform. registered
-  and rejected answer the registration request; activated and deactivated
-  follow later in the registration's life.
+  The domain state of the registration, reported by the DTx platform. In v1.0
+  the two states that answer a registration: registered and rejected.
+  Activation, deactivation and off-boarding follow in the lifecycle
+  specification.
 type: object
 required:
   - coding
@@ -20,20 +21,16 @@ properties:
         system:
           type: string
           enum:
-            - 'https://fhir.healthstore.nhs.uk/CodeSystem/registration-business-status'
+            - 'https://fhir.dtx.national.nhs.uk/CodeSystem/registration-business-status'
         code:
           type: string
           enum:
             - registered
             - rejected
-            - activated
-            - deactivated
         display:
           type: string
           enum:
             - Registered
             - Rejected
-            - Activated
-            - Deactivated
   text:
     type: string
