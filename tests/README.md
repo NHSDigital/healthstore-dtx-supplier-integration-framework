@@ -1,52 +1,56 @@
-# Integration & contract-validation tests
+# Contract-validation tests
 
-Runs `examples/reference-supplier` for real, over HTTP, and checks the result two different ways.
+Runs a [Prism](https://github.com/stoplightio/prism) mock of
+`specification/healthstore-api.yaml` and calls it the way a supplier
+platform would.
 
 ```sh
 npm run test:integration
 ```
 
+## What is under test
+
+Nothing in this repository implements the Registrations API; HealthStore
+does. The mock is therefore the thing under test, and it proves two things:
+
+- **The spec's examples conform to its schemas.** Prism serves each
+  operation's examples and validates them on the way out. The tests then
+  assert the shape a supplier depends on: four data-bearing fields on
+  the registration, nothing v0.1 carried and v1.0 removed, the interim
+  demographics on the contained Patient and nowhere else, an empty Bundle for
+  no registrations, `OperationOutcome` error bodies, `Retry-After` on 429.
+- **The request shapes a supplier will send are accepted, and the ones the
+  contract removed are refused.** Prism validates every request against the
+  spec. A missing `id_token`, an extra `product_id`, a missing `X-Request-ID`,
+  a v0.1 `businessStatus` or `statusReason`: each draws the operation's
+  `400` with its `OperationOutcome` example. The assertion is that the spec
+  rejects the shape.
+
 ## Directories
 
-### `contract-validation/`
+- `contract-validation/healthstore-api.test.js`: the tests.
+- `setup/global-setup.js`, `setup/global-teardown.js`: Jest's
+  `globalSetup`/`globalTeardown` hooks, wired up in `jest.config.js`. Setup
+  starts `prism mock` on port 4013; teardown stops it.
+- `fhir/extract-examples.js`: writes every FHIR resource in the spec's
+  examples to JSON files for the HL7 validator, run by the `fhir-validate`
+  CI job against base R4, `fhir.r4.ukcore.stu2` 2.1.0 and the
+  StructureDefinitions in `specification/fhir/`.
 
-Every request in this directory is routed through a [Prism](https://github.com/stoplightio/prism) proxy sitting in front of the real app, so it's validated against the OpenAPI spec at runtime as well as asserted on by the test. Use this directory for spec-conformant requests: the happy path, and business-logic negative cases (unknown id, wrong credentials) that are still schema-valid.
+## Choosing an example
 
-- `supplier-api.test.js` — proxied through `specification/supplier-api.yaml`, calling `reference-supplier`.
+Prism picks the first example unless told otherwise. The tests use the
+`Prefer` header to pick a named example or a status code:
 
-### `integration/`
+```
+Prefer: example=none
+Prefer: code=401, example=token-expired
+```
 
-Every request here goes straight to the real app, bypassing Prism entirely. Use this directory for deliberately spec-violating requests — missing headers, invalid enum values, a body that breaks a `oneOf`. If these went through the proxy, Prism would flag them as violations too, but that's the point of the test, not a bug: it would show up as noise in the violation log described below and make a passing run look broken.
+## What this does not cover
 
-- `supplier-api.test.js` — calls `reference-supplier` directly.
-
-**Rule of thumb:** if the request should fail validation against the spec, put it in `integration/`. Otherwise put it in `contract-validation/`.
-
-### `setup/`
-
-Shared infrastructure, not tests:
-
-- `global-setup.js` / `global-teardown.js` — Jest's `globalSetup`/`globalTeardown` hooks (wired up in `jest.config.js`). Setup builds the example app with Gradle, then starts two processes: `reference-supplier` (port 8080) and a Prism proxy in front of it (port 4013). Teardown shuts them down and scrapes the proxy's log for anything Prism flagged as a spec violation.
-- `supplier-client.js` — token exchange, `authHeaders(token)`, and `buildSpecificTask`/`buildAvailableTask` for the two `supplier-api.test.js` files. The builders return `{ task, ...echoedValues }` with sensible defaults for a spec-conformant Task; pass an override object to change a field, or set one to `undefined` to delete it — that's how the negative tests build a Task that violates the spec (e.g. `buildSpecificTask({ priority: undefined })`).
-
-### `postman/`
-
-Unrelated: a Postman collection for the partner-shared DTx Integration API. See [`postman/README.md`](postman/README.md).
-
-## No coverage of the Registrations API
-
-`specification/healthstore-api.yaml` has no tests. The in-memory Health Store stand-in that served it has been removed, and nothing else implements the Registrations API. Spectral still lints the document, but nothing exercises it at runtime.
-
-## How a spec violation gets caught
-
-Requests are never blocked at the proxy — `global-setup.js` deliberately doesn't pass Prism the `--errors` flag. Blocking would make Prism drop the field-level detail of *why* a request or response violates the spec, keeping only a generic "invalid" error. Instead, every request is allowed through to the real app, and Prism's validation log is scraped for violations after the run. If it finds any, `global-teardown.js` prints them and the process exits non-zero.
-
-This means a **fully green Jest run can still fail the overall command** if Prism caught a violation. Check the teardown output, not just the Jest summary.
-
-## Known gaps pinned by these tests
-
-A test asserts what the reference app actually does today, not what the spec promises, because the alternative is a permanently red test until someone fixes the app:
-
-- `POST /oauth/token` never returns the `401` the spec documents for "Client authentication failed" — every credential failure comes back as `400 invalid_client`.
-
-Search for `should be` in `integration/supplier-api.test.js` to find these.
+- Behaviour the schema cannot express: `already-registered` only with
+  `registered`, `note` required with `other`, repeat Tasks as no-ops. Those
+  are HealthStore's checks and are covered by conformance testing.
+- FHIR profile conformance. See the `fhir-validate` job in
+  `.github/workflows/api-checks.yaml`.

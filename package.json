@@ -4,12 +4,13 @@
   "version": "0.0.0",
   "description": "Contract repository for DTx-supplier integration with the Health Store: specs, schemas, examples and tests.",
   "scripts": {
-    "lint:spec": "spectral lint specification/healthstore-api.yaml specification/supplier-api.yaml schemas/dtx-integration.yaml",
+    "lint:spec": "spectral lint specification/healthstore-api.yaml",
     "test:integration": "jest --config jest.config.js --runInBand"
   },
   "devDependencies": {
     "@stoplight/prism-cli": "^5.16.0",
     "@stoplight/spectral-cli": "^6.16.3",
-    "jest": "^30.4.2"
+    "jest": "^30.4.2",
+    "js-yaml": "^3.15.2"
   }
 }
