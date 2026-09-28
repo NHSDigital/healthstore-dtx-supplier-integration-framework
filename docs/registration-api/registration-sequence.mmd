@@ -1,32 +1,35 @@
 sequenceDiagram
+    actor Patient
+    participant App as Supplier product
+    participant Backend as Supplier backend
+    participant NHSLogin as NHS login
     participant HealthStore as NHS HealthStore
-    participant Platform as Supplier platform
 
-    Note over HealthStore,Platform: X-Request-ID header on every request except the token endpoints,<br/>returned in the response headers. A retry sends the same value.
-    Note over HealthStore,Platform: Each side sends its access token as a bearer,<br/>cached against expires_in and re-acquired on expiry or 401.
+    Note over Patient,HealthStore: Clinician has requested the DTx and the patient has been invited.<br/>Nothing has been sent to the supplier.
 
-    HealthStore->>Platform: POST /oauth/token<br/>client_credentials, credentials issued by the platform
-    Platform-->>HealthStore: 200 access token, expires_in
+    Patient->>App: Opens the product
+    App->>NHSLogin: Sign in (OpenID Connect)
+    NHSLogin-->>App: Authorisation code
+    App->>Backend: Authorisation code
+    Backend->>NHSLogin: Token exchange
+    NHSLogin-->>Backend: ID token, access token
+    Backend->>NHSLogin: GET /userinfo
+    NHSLogin-->>Backend: Demographics, per the granted scopes
 
-    HealthStore->>Platform: POST /healthstore-registration-requests<br/>Task requested: process-specific-service-request (focus)<br/>or process-available-service-requests (groupIdentifier)
-    Platform-->>HealthStore: 200 Task accepted, identifier echoed, lastModified set
+    Note over Backend,HealthStore: Bearer: the product's client-credentials token,<br/>cached against expires_in. X-Request-ID on every call.
 
-    Platform->>HealthStore: POST the auth provider's token endpoint<br/>client_credentials, credentials issued by NHS HealthStore
-    HealthStore-->>Platform: 200 access token, expires_in
+    Backend->>HealthStore: POST /registrations/retrieve { id_token }
+    HealthStore->>NHSLogin: JWKS (cached, refetched on an unknown kid)
+    HealthStore->>HealthStore: Verify signature, iss, exp, aud, P9<br/>Resolve the patient and the product
+    HealthStore-->>Backend: 200 searchset Bundle of open registrations
 
-    alt one registration
-        Platform->>HealthStore: GET /registrations/{registration-id}
-        HealthStore-->>Platform: 200 ServiceRequest, Patient contained
-    else a cohort
-        loop until the worklist returns nothing
-            Platform->>HealthStore: GET /registrations?_count&cohort
-            HealthStore-->>Platform: 200 searchset Bundle of ServiceRequests
-        end
+    loop Each registration, usually one
+        Backend->>Backend: Local checks, then create the account or link an existing one
+        Backend->>HealthStore: POST /registrations/{registration-id}/tasks<br/>Task: registered, or rejected with a coded reason
+        HealthStore-->>Backend: 200, no body
     end
 
-    Platform->>HealthStore: POST /registrations/{registration-id}/tasks<br/>Task: registration registered or rejected
-    HealthStore-->>Platform: 200, the registration leaves the worklist
+    Backend-->>App: Session ready
+    App-->>Patient: Product continues
 
-    Note over HealthStore,Platform: Patient first opens the digital therapeutic
-    Platform->>HealthStore: POST /registrations/{registration-id}/tasks<br/>Task: activation
-    HealthStore-->>Platform: 200
+    Note over HealthStore: Registration visible to the clinical team within seconds

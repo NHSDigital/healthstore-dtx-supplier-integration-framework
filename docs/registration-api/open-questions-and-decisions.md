@@ -1,8 +1,21 @@
 # Open questions and decisions
 
-## Open questions
+**Superseded.** This file recorded the open questions, proposals and
+decisions of the v0.1 draft. The v1.0 baseline answers or removes them:
 
-### Patient consent
+- What changed and why, question by question, is in
+  [`change-log.md`](change-log.md).
+- The review threads on PR #7 carry the responses to each point raised there.
+- Post-registration lifecycle questions move to [`lifecycle.md`](lifecycle.md).
+
+Nothing below is current. It is kept so that the record of what was asked,
+and by whom, is not lost.
+
+## Archived (v0.1 record)
+
+### Open questions
+
+#### Patient consent
 
 - Is there a distinction between platforms that will not want to ingest the full
   registration, in respect of patient data, and those that can?
@@ -14,7 +27,7 @@
 - Where does ownership of the decision to return full patient data sit, with the
   client or with HealthStore?
 
-### Care path code
+#### Care path code
 
 `care_path_code` is in the schema, on `ServiceRequest.code`. Its construct is not
 agreed. Settling it needs both suppliers and the HealthStore programme.
@@ -27,7 +40,7 @@ agreed. Settling it needs both suppliers and the HealthStore programme.
 - What the levels beneath it are called. Pathway, programme, protocol, condition
   and module are each used differently across the platforms.
 
-### Practitioner identities
+#### Practitioner identities
 
 - Which practitioner is the `requester`, the one placing the enrolment or the
   clinician they are placing it on behalf of.
@@ -35,7 +48,7 @@ agreed. Settling it needs both suppliers and the HealthStore programme.
   one placing the enrolment.
 - Whether a site ODS code is needed in addition to the clinician's organisation.
 
-### Non-functional requirements
+#### Non-functional requirements
 
 None of these is set. They are programme-set and standard across integrations.
 
@@ -48,7 +61,7 @@ None of these is set. They are programme-set and standard across integrations.
 - The rate at which HealthStore may send registration requests, and what follows a
   failure to deliver.
 
-### For the HealthStore programme
+#### For the HealthStore programme
 
 - Whether cohort membership is fixed at release or changes between calls.
 - Whether a patient can appear in more than one cohort.
@@ -65,12 +78,12 @@ None of these is set. They are programme-set and standard across integrations.
   distinct from HealthStore's own outbound retries, which `overview.md` already
   states are HealthStore's own.
 
-### For suppliers
+#### For suppliers
 
 - The full list of scenarios in which a registration is cancelled or deactivated,
   including whether either can be time-based.
 
-#### Luscii
+##### Luscii
 
 From mapping against `POST /v1/patients`. Fields the contract already includes are
 not listed. The account name and the pathway identifiers are under agreement
@@ -80,7 +93,7 @@ below.
 - Whether every given name is needed, since only the first is included.
 - Whether a language is required, which nothing currently provides.
 
-### For HealthStore and suppliers to agree
+#### For HealthStore and suppliers to agree
 
 - Whether cancelled is a rejection, a distinct business status, or `deactivated`
   with a reason.
@@ -99,11 +112,11 @@ below.
 - What HealthStore supplies where a platform requires a globally unique account
   name.
 
-## Proposals
+### Proposals
 
 Not decided. Presented for reaction.
 
-### Identifying the clinician
+#### Identifying the clinician
 
 The registration names the clinician responsible for the patient's care on the
 platform. The practitioner who places the enrolment is internal to HealthStore and
@@ -166,7 +179,7 @@ well as the identity.
 `performer` is unchanged. Only `requester` changes, from an ODS organisation code to
 a contained reference, which is a breaking change.
 
-### Naming the commissioning body
+#### Naming the commissioning body
 
 The registration names the commissioning body so a platform can check it is
 licensed to serve that region. `insurance` references a contained `Coverage`, whose
@@ -205,7 +218,31 @@ Added to the resource above:
 three codes, `nhs`, `private` and `devolved-nations`, and cannot name an
 organisation.
 
-## Decisions
+**Resolution (27 September 2026, v1.0 baseline): adopted in substance but implemented as an
+extension.**
+
+Carried as `contracting_org_ods`: an extension on the ServiceRequest
+(`Extension-ContractingOrganisation`, a `valueIdentifier` using the ODS organisation
+code system, mandatory 1..1) rather than as a contained Coverage referenced from
+`ServiceRequest.insurance`. Three reasons:
+
+1. UK Core does not profile Coverage. Introducing an unprofiled resource built around
+   a US financial model into an NHS specification invites avoidable interoperability
+   challenge, whereas realm-specific extensions are UK Core's own standard mechanism
+   for concepts the base resources do not carry.
+2. The extension keeps the retrieve payload to a single contained resource, with no
+   `insurance` element and no `beneficiary` back-reference, which simplifies parsing
+   for DTx suppliers.
+3. The name. "Commissioning organisation" collides with the NHS Data Dictionary
+   element ORGANISATION IDENTIFIER (CODE OF COMMISSIONER), which means the statutory
+   commissioner of activity. This field identifies the organisation that contracts
+   with and is charged by the DTx supplier. In private beta they are the same
+   organisation; they need not remain so.
+
+Nothing that consumes the organisation is affected by the representation or the
+name: the same ODS code travels on every registration.
+
+### Decisions
 
 - **Condition implies module.** Sub-modules are not modelled. HealthStore sends the
   condition or care pathway and the platform resolves how that maps internally.
