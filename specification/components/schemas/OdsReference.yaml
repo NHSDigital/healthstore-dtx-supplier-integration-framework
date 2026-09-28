@@ -1,0 +1,10 @@
+title: OdsReference
+description: The ODS code in identifier and the name in display.
+type: object
+required:
+  - identifier
+properties:
+  identifier:
+    $ref: '../identifiers/OdsOrganizationIdentifier.yaml'
+  display:
+    type: string

@@ -1,0 +1,16 @@
+title: RetrieveRegistrationsRequest
+description: |
+  The patient's NHS login ID token, and nothing else. The bearer token on
+  the call fixes the supplier and product; the ID token fixes the patient.
+type: object
+required:
+  - id_token
+additionalProperties: false
+properties:
+  id_token:
+    type: string
+    description: |
+      The ID token issued by NHS login for the patient's current session,
+      as received by the DTx platform, unmodified. A signed JWT (JWS compact
+      serialisation).
+    pattern: '^[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+$'

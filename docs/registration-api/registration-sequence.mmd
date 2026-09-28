@@ -1,0 +1,35 @@
+sequenceDiagram
+    actor Patient
+    participant App as Supplier product
+    participant Backend as Supplier backend
+    participant NHSLogin as NHS login
+    participant HealthStore as NHS HealthStore
+
+    Note over Patient,HealthStore: Clinician has requested the DTx and the patient has been invited.<br/>Nothing has been sent to the supplier.
+
+    Patient->>App: Opens the product
+    App->>NHSLogin: Sign in (OpenID Connect)
+    NHSLogin-->>App: Authorisation code
+    App->>Backend: Authorisation code
+    Backend->>NHSLogin: Token exchange
+    NHSLogin-->>Backend: ID token, access token
+    Backend->>NHSLogin: GET /userinfo
+    NHSLogin-->>Backend: Demographics, per the granted scopes
+
+    Note over Backend,HealthStore: Bearer: the product's client-credentials token,<br/>cached against expires_in. X-Request-ID on every call.
+
+    Backend->>HealthStore: POST /registrations/retrieve { id_token }
+    HealthStore->>NHSLogin: JWKS (cached, refetched on an unknown kid)
+    HealthStore->>HealthStore: Verify signature, iss, exp, aud, P9<br/>Resolve the patient and the product
+    HealthStore-->>Backend: 200 searchset Bundle of open registrations
+
+    loop Each registration, usually one
+        Backend->>Backend: Local checks, then create the account or link an existing one
+        Backend->>HealthStore: POST /registrations/{registration-id}/tasks<br/>Task: registered, or rejected with a coded reason
+        HealthStore-->>Backend: 200, no body
+    end
+
+    Backend-->>App: Session ready
+    App-->>Patient: Product continues
+
+    Note over HealthStore: Registration visible to the clinical team within seconds
