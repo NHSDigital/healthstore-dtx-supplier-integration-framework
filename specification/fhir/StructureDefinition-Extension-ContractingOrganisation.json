@@ -1,0 +1,29 @@
+{
+  "resourceType": "StructureDefinition",
+  "id": "Extension-ContractingOrganisation",
+  "url": "https://fhir.dtx.national.nhs.uk/StructureDefinition/Extension-ContractingOrganisation",
+  "version": "1.0.0",
+  "name": "ExtensionContractingOrganisation",
+  "title": "Contracting organisation",
+  "status": "active",
+  "date": "2026-09-27",
+  "publisher": "NHS England, DTx HealthStore",
+  "description": "The organisation the DTx supplier contracts with and charges for the registration, identified by ODS code. Deliberately not the NHS Data Dictionary's ORGANISATION IDENTIFIER (CODE OF COMMISSIONER), which means the statutory commissioner of activity. In private beta they are the same organisation; they need not remain so.",
+  "fhirVersion": "4.0.1",
+  "kind": "complex-type",
+  "abstract": false,
+  "context": [{ "type": "element", "expression": "ServiceRequest" }],
+  "type": "Extension",
+  "baseDefinition": "http://hl7.org/fhir/StructureDefinition/Extension",
+  "derivation": "constraint",
+  "differential": {
+    "element": [
+      { "id": "Extension", "path": "Extension", "short": "Contracting organisation (ODS code)", "definition": "The organisation the DTx supplier contracts with and charges for the registration.", "min": 0, "max": "1" },
+      { "id": "Extension.extension", "path": "Extension.extension", "max": "0" },
+      { "id": "Extension.url", "path": "Extension.url", "fixedUri": "https://fhir.dtx.national.nhs.uk/StructureDefinition/Extension-ContractingOrganisation" },
+      { "id": "Extension.value[x]", "path": "Extension.value[x]", "min": 1, "type": [{ "code": "Identifier" }] },
+      { "id": "Extension.value[x].system", "path": "Extension.value[x].system", "min": 1, "fixedUri": "https://fhir.nhs.uk/Id/ods-organization-code" },
+      { "id": "Extension.value[x].value", "path": "Extension.value[x].value", "min": 1 }
+    ]
+  }
+}

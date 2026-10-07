@@ -1,0 +1,54 @@
+name: API checks
+
+on:
+  push:
+  workflow_dispatch:
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: lts/*
+          cache: npm
+      - run: npm ci
+      - run: npm run lint:spec -- --format github-actions
+
+  contract-tests:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: lts/*
+          cache: npm
+      - run: npm ci
+      - run: npm run test:integration
+
+  # Validates the FHIR resources in the spec's examples against base R4,
+  # the UK Core profiles and this repository's own StructureDefinitions
+  # (specification/fhir/) with the HL7 validator. Fails on errors only; the
+  # warnings about our own CodeSystem URIs not resolving are expected.
+  fhir-validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: lts/*
+          cache: npm
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '17'
+      - run: npm ci
+      - run: node tests/fhir/extract-examples.js build/fhir-examples
+      - name: Download the HL7 FHIR validator
+        run: curl -sSL -o validator_cli.jar https://github.com/hapifhir/org.hl7.fhir.core/releases/latest/download/validator_cli.jar
+      - name: Validate against R4, UK Core and this repository's StructureDefinitions
+        run: java -jar validator_cli.jar build/fhir-examples/*.json -version 4.0.1 -ig fhir.r4.ukcore.stu2#2.1.0 -ig specification/fhir -tx n/a

@@ -1,0 +1,83 @@
+openapi: 3.0.3
+info:
+  title: Registrations API
+  version: 1.0.0
+  description: |
+    Implemented by HealthStore and called by DTx platforms. Two
+    operations, both from the DTx platform to HealthStore, both made from
+    inside the patient's NHS login session:
+
+    1. Retrieve the authenticated patient's open registrations, presenting
+       the patient's NHS login ID token in the `NHSD-ID-Token` header.
+    2. Acknowledge each registration with a lifecycle Task: registered, or
+       rejected with a coded reason.
+
+    Retrieval is read-only. A registration stays open until it is
+    acknowledged and is returned at every sign-in until then.
+
+    Tolerant reader. A DTx platform MUST ignore response elements it does not
+    recognise. Additions to this contract are additive and non-breaking;
+    nothing is renamed or repurposed within a major version.
+  contact:
+    name: NHS HealthStore
+  license:
+    name: MIT
+    url: https://github.com/NHSDigital/healthstore-dtx-supplier-integration-framework/blob/main/LICENCE.md
+servers:
+  - url: https://api.{env}.dtx.national.nhs.uk/registration/v1
+    description: One host per environment. The environment name is assigned at onboarding.
+    variables:
+      env:
+        default: sandpit
+        description: Environment name, assigned at onboarding.
+tags:
+  - name: registration outcomes
+    description: Lifecycle Tasks reporting a registration's outcome, registered or rejected, with a coded reason.
+  - name: registrations
+    description: Registrations retrieved by the DTx platform for the authenticated patient.
+security:
+  - clientCredentials: []
+paths:
+  /registrations:
+    $ref: './components/endpoints/getRegistrations.yaml'
+  /registrations/{registration-id}/tasks:
+    $ref: './components/endpoints/postRegistrationTask.yaml'
+components:
+  securitySchemes:
+    clientCredentials:
+      type: oauth2
+      description: |
+        OAuth 2.0 client credentials, issued by HealthStore to the DTx
+        platform. This is the only authentication surface in the
+        integration: every call is from the DTx platform to HealthStore.
+
+        Interim: AWS Cognito, client authentication client_secret_post,
+        token endpoint the auth provider's.
+
+        Target: NHS England API Management, where this API is published as
+        user-restricted (NHS login, separate authentication and authorisation).
+        The DTx platform obtains its access token by token exchange, presenting
+        the patient's NHS login ID token as the subject_token with a signed
+        client assertion, and stops sending the NHSD-ID-Token header: the API
+        Management proxy populates it from the exchange and discards any copy
+        the caller sends. HealthStore verifies the ID token in every
+        environment. Moving from interim to target changes how the access token
+        is obtained and who places the header, and nothing else. Both are set
+        out in docs/registration-api/resources.md.
+        tokenUrl below is representative.
+
+        Product identity is the credential. A supplier with more than one
+        product registers one client application, with its own client
+        credentials, per product per environment. At onboarding each client
+        id is mapped to the supplier, the product, and the supplier's NHS
+        login client id used to check the ID token's audience. A product's
+        credential can only retrieve and acknowledge its own registrations.
+
+        The patient's NHS login ID token is not a security scheme. The
+        bearer token says which supplier and product is calling; the ID
+        token in the NHSD-ID-Token header says which patient the response
+        is scoped to. Both are verified on every retrieve.
+      flows:
+        clientCredentials:
+          tokenUrl: https://auth.sandpit.dtx.national.nhs.uk/oauth2/token
+          scopes: {}

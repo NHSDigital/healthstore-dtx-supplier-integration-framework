@@ -1,0 +1,38 @@
+description: |
+  The request is invalid. Terminal: correct the request before retrying.
+
+  | Error code | Description |
+  |---|---|
+  | INVALID_FHIR_STRUCTURE | Body is not valid FHIR |
+  | MISSING_VALUE | A required element is absent |
+  | INVALID_VALUE | An element is the wrong type or format |
+  | INVALID_CODE | An element has a value outside its value set |
+  | MISSING_HEADER | A required header is absent |
+headers:
+  X-Request-ID:
+    $ref: '../headers/response/XRequestID.yaml'
+  X-Correlation-ID:
+    $ref: '../headers/response/XCorrelationID.yaml'
+content:
+  application/fhir+json:
+    schema:
+      $ref: '../schemas/OperationOutcome.yaml'
+    example:
+      resourceType: OperationOutcome
+      issue:
+        - severity: error
+          code: required
+          details:
+            coding:
+              - code: MISSING_VALUE
+          diagnostics: note is required where statusReason is other
+          expression:
+            - Task.note
+        - severity: error
+          code: code-invalid
+          details:
+            coding:
+              - code: INVALID_CODE
+          diagnostics: duplicate is not in the acknowledgement-reason set
+          expression:
+            - Task.statusReason

@@ -1,0 +1,33 @@
+title: RegistrationBundle
+description: |
+  The authenticated patient's open registrations for the calling
+  credential's product. Usually one; occasionally a few; empty when there
+  are none.
+type: object
+required:
+  - resourceType
+  - type
+  - total
+  - entry
+properties:
+  resourceType:
+    type: string
+    enum:
+      - Bundle
+  type:
+    type: string
+    enum:
+      - searchset
+  total:
+    type: integer
+    minimum: 0
+    description: The number of registrations returned.
+  entry:
+    type: array
+    items:
+      type: object
+      required:
+        - resource
+      properties:
+        resource:
+          $ref: './RegistrationServiceRequest.yaml'
