@@ -8,7 +8,7 @@ info:
     inside the patient's NHS login session:
 
     1. Retrieve the authenticated patient's open registrations, presenting
-       the patient's NHS login ID token.
+       the patient's NHS login ID token in the `NHSD-ID-Token` header.
     2. Acknowledge each registration with a lifecycle Task: registered, or
        rejected with a coded reason.
 
@@ -38,8 +38,8 @@ tags:
 security:
   - clientCredentials: []
 paths:
-  /registrations/retrieve:
-    $ref: './components/endpoints/postRetrieveRegistrations.yaml'
+  /registrations:
+    $ref: './components/endpoints/getRegistrations.yaml'
   /registrations/{registration-id}/tasks:
     $ref: './components/endpoints/postRegistrationTask.yaml'
 components:
@@ -52,12 +52,18 @@ components:
         integration: every call is from the DTx platform to HealthStore.
 
         Interim: AWS Cognito, client authentication client_secret_post,
-        token endpoint the auth provider's. Target: NHS England API
-        Management, application-restricted, client authentication by
-        RS512-signed JWT assertion
-        (client_assertion_type=urn:ietf:params:oauth:client-assertion-type:jwt-bearer).
-        Moving from interim to target changes how a token is obtained and
-        nothing else. Both are set out in docs/registration-api/resources.md.
+        token endpoint the auth provider's.
+
+        Target: NHS England API Management, where this API is published as
+        user-restricted (NHS login, separate authentication and authorisation).
+        The DTx platform obtains its access token by token exchange, presenting
+        the patient's NHS login ID token as the subject_token with a signed
+        client assertion, and stops sending the NHSD-ID-Token header: the API
+        Management proxy populates it from the exchange and discards any copy
+        the caller sends. HealthStore verifies the ID token in every
+        environment. Moving from interim to target changes how the access token
+        is obtained and who places the header, and nothing else. Both are set
+        out in docs/registration-api/resources.md.
         tokenUrl below is representative.
 
         Product identity is the credential. A supplier with more than one
@@ -69,7 +75,7 @@ components:
 
         The patient's NHS login ID token is not a security scheme. The
         bearer token says which supplier and product is calling; the ID
-        token in the retrieve request body says which patient the response
+        token in the NHSD-ID-Token header says which patient the response
         is scoped to. Both are verified on every retrieve.
       flows:
         clientCredentials:

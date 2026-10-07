@@ -21,8 +21,8 @@ const write = (name, resource) => {
 };
 
 // Every ServiceRequest inside every retrieve response example.
-const retrieve = load('postRetrieveRegistrations.yaml');
-const bundles = retrieve.post.responses['200'].content['application/fhir+json'].examples;
+const retrieve = load('getRegistrations.yaml');
+const bundles = retrieve.get.responses['200'].content['application/fhir+json'].examples;
 for (const [name, { value }] of Object.entries(bundles)) {
   (value.entry || []).forEach((e, i) => write(`servicerequest-${name}-${i}`, e.resource));
 }

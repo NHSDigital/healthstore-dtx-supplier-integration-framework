@@ -30,13 +30,15 @@ only in registrations.
 1. A clinician requests a DTx for a patient in the request tool. Single patient
    or bulk list; bulk stays on the HealthStore side.
 2. The patient is invited via NHS App message or SMS. Nothing is sent to the
-   platform at this point.
-3. The patient opens the product and signs in with NHS login. The platform's
+   platform at this point. The patient sees a button for your app on the HealthStore page
+3. The patient taps to open your app and signs in with NHS login. Your platform's
    existing integration, unchanged.
-4. The platform's backend calls NHS login `/userinfo` and receives the
+4. Your platform's backend calls NHS login `/userinfo` and receives the
    patient's demographics, verified at source.
-5. On every NHS login sign-in, the platform's backend calls
-   `POST /registrations/retrieve` with the patient's NHS login ID token. HealthStore verifies the token and returns the
+5. On every NHS login sign-in, your platform's backend calls
+   `GET /registrations` with the patient's NHS login ID token in the
+   `NHSD-ID-Token` header.
+   HealthStore verifies the token and returns the
    patient's open registrations: four fields each, plus the interim
    demographics until the platform's NHS login scopes are granted.
 6. The platform runs its local checks and acknowledges each registration,
@@ -77,8 +79,8 @@ the synchronous model.
 
 **One-leg authentication.** Every call is platform to HealthStore. The
 platform holds one client credential per product and calls with a bearer
-token; the patient's ID token in the retrieve body scopes the response to the
-patient. The platform issues no tokens, hosts no endpoint, and opens no inbound
+token; the patient's ID token in the `NHSD-ID-Token` header scopes the
+response to the patient. The platform issues no tokens, hosts no endpoint, and opens no inbound
 route. The two-legged pattern of v0.1, where each side authenticated to the
 other, is gone.
 
@@ -147,8 +149,9 @@ individually at their own first sign-in.
 
 The constructs the exchange is built from.
 
-- FHIR constructs for everything that is a resource. The retrieve request is
-  ordinary JSON, because its content is a token, not a resource.
+- FHIR constructs for everything that is a resource. The retrieve request has
+  no body at all: the patient is named by the `NHSD-ID-Token` header, not by
+  request content.
 - The registration payload is a `ServiceRequest` profiled on
   UKCore-ServiceRequest, carrying four data-bearing fields, plus the interim
   demographics. See
@@ -193,7 +196,7 @@ sequenceDiagram
 
     Note over Backend,HealthStore: Bearer: the product's client-credentials token,<br/>cached against expires_in. X-Request-ID on every call.
 
-    Backend->>HealthStore: POST /registrations/retrieve { id_token }
+    Backend->>HealthStore: GET /registrations<br/>NHSD-ID-Token: the patient's ID token
     HealthStore->>NHSLogin: JWKS (cached, refetched on an unknown kid)
     HealthStore->>HealthStore: Verify signature, iss, exp, aud, P9<br/>Resolve the patient and the product
     HealthStore-->>Backend: 200 searchset Bundle of open registrations

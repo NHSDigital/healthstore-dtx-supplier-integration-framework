@@ -40,11 +40,10 @@ function task({ businessStatus, statusReason, note }) {
   return t;
 }
 
-async function retrieve(body, extraHeaders = {}) {
-  return fetch(`${MOCK_URL}/registrations/retrieve`, {
-    method: 'POST',
-    headers: headers({ 'Content-Type': 'application/json', ...extraHeaders }),
-    body: JSON.stringify(body),
+async function retrieve(extraHeaders = {}) {
+  return fetch(`${MOCK_URL}/registrations`, {
+    method: 'GET',
+    headers: headers({ 'NHSD-ID-Token': ID_TOKEN, ...extraHeaders }),
   });
 }
 
@@ -56,9 +55,9 @@ async function acknowledge(body, extraHeaders = {}, id = REGISTRATION_ID) {
   });
 }
 
-describe('POST /registrations/retrieve', () => {
+describe('GET /registrations', () => {
   test('200 with one open registration carrying the four fields', async () => {
-    const res = await retrieve({ id_token: ID_TOKEN }, { Prefer: 'example=one-registration' });
+    const res = await retrieve({ Prefer: 'example=one-registration' });
     expect(res.status).toBe(200);
     expect(res.headers.get('content-type')).toMatch(/application\/fhir\+json/);
     const bundle = await res.json();
@@ -113,7 +112,7 @@ describe('POST /registrations/retrieve', () => {
   });
 
   test('200 with interim demographics on the contained Patient only', async () => {
-    const res = await retrieve({ id_token: ID_TOKEN }, { Prefer: 'example=with-interim-demographics' });
+    const res = await retrieve({ Prefer: 'example=with-interim-demographics' });
     expect(res.status).toBe(200);
     const bundle = await res.json();
     const patient = bundle.entry[0].resource.contained.find(r => r.resourceType === 'Patient');
@@ -125,23 +124,23 @@ describe('POST /registrations/retrieve', () => {
   });
 
   test('200 with an empty Bundle when there are no open registrations', async () => {
-    const res = await retrieve({ id_token: ID_TOKEN }, { Prefer: 'example=none' });
+    const res = await retrieve({ Prefer: 'example=none' });
     expect(res.status).toBe(200);
     const bundle = await res.json();
     expect(bundle).toMatchObject({ resourceType: 'Bundle', type: 'searchset', total: 0, entry: [] });
   });
 
-  test('401 TOKEN_EXPIRED is an OperationOutcome naming id_token', async () => {
-    const res = await retrieve({ id_token: ID_TOKEN }, { Prefer: 'code=401, example=token-expired' });
+  test('401 TOKEN_EXPIRED is an OperationOutcome naming NHSD-ID-Token', async () => {
+    const res = await retrieve({ Prefer: 'code=401, example=token-expired' });
     expect(res.status).toBe(401);
     const oo = await res.json();
     expect(oo.resourceType).toBe('OperationOutcome');
     expect(oo.issue[0].details.coding[0].code).toBe('TOKEN_EXPIRED');
-    expect(oo.issue[0].expression).toContain('id_token');
+    expect(oo.issue[0].expression).toContain('NHSD-ID-Token');
   });
 
   test('429 carries Retry-After', async () => {
-    const res = await retrieve({ id_token: ID_TOKEN }, { Prefer: 'code=429' });
+    const res = await retrieve({ Prefer: 'code=429' });
     expect(res.status).toBe(429);
     expect(Number(res.headers.get('retry-after'))).toBeGreaterThanOrEqual(1);
     const oo = await res.json();
@@ -151,23 +150,25 @@ describe('POST /registrations/retrieve', () => {
   // Prism answers a request that fails spec validation with the operation's
   // own 400 response, so these negative cases also exercise the BadRequest
   // OperationOutcome. The assertion is that the spec rejects the shape.
-  test('a body without id_token is rejected by the spec', async () => {
-    const res = await retrieve({});
+  test('a missing NHSD-ID-Token header is rejected by the spec', async () => {
+    const res = await fetch(`${MOCK_URL}/registrations`, {
+      method: 'GET',
+      headers: { Authorization: 'Bearer mock', 'X-Request-ID': crypto.randomUUID() },
+    });
     expect(res.status).toBe(400);
     const oo = await res.json();
     expect(oo.resourceType).toBe('OperationOutcome');
   });
 
-  test('a body with extra fields such as product_id is rejected by the spec', async () => {
-    const res = await retrieve({ id_token: ID_TOKEN, product_id: 'x' });
+  test('an NHSD-ID-Token that is not a compact JWS is rejected by the spec', async () => {
+    const res = await retrieve({ 'NHSD-ID-Token': 'not-a-jwt' });
     expect(res.status).toBe(400);
   });
 
   test('a missing X-Request-ID is rejected by the spec', async () => {
-    const res = await fetch(`${MOCK_URL}/registrations/retrieve`, {
-      method: 'POST',
-      headers: { Authorization: 'Bearer mock', 'Content-Type': 'application/json' },
-      body: JSON.stringify({ id_token: ID_TOKEN }),
+    const res = await fetch(`${MOCK_URL}/registrations`, {
+      method: 'GET',
+      headers: { Authorization: 'Bearer mock', 'NHSD-ID-Token': ID_TOKEN },
     });
     expect(res.status).toBe(400);
   });

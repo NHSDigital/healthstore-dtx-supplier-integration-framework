@@ -18,7 +18,7 @@ sequenceDiagram
 
     Note over Backend,HealthStore: Bearer: the product's client-credentials token,<br/>cached against expires_in. X-Request-ID on every call.
 
-    Backend->>HealthStore: POST /registrations/retrieve { id_token }
+    Backend->>HealthStore: GET /registrations<br/>NHSD-ID-Token: the patient's ID token
     HealthStore->>NHSLogin: JWKS (cached, refetched on an unknown kid)
     HealthStore->>HealthStore: Verify signature, iss, exp, aud, P9<br/>Resolve the patient and the product
     HealthStore-->>Backend: 200 searchset Bundle of open registrations

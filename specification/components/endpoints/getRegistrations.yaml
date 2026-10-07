@@ -1,4 +1,4 @@
-post:
+get:
   operationId: retrieveRegistrations
   tags:
     - registrations
@@ -9,7 +9,9 @@ post:
     calls MUST run synchronously, in the same process: the patient is
     identified by the NHS number in the /userinfo response, and the
     registrations returned here carry no patient identifier of their own.
-    The request carries the patient's NHS login ID token and nothing else.
+    The request has no body. The patient's NHS login ID token is carried in
+    the `NHSD-ID-Token` header and nowhere else — never as a query
+    parameter.
 
     The DTx platform MUST call this operation on every NHS login sign-in,
     whichever route brought the patient to the product. The launch link
@@ -35,19 +37,12 @@ post:
   parameters:
     - $ref: '../headers/request/XRequestID.yaml'
     - $ref: '../headers/request/XCorrelationID.yaml'
-  requestBody:
-    required: true
-    content:
-      application/json:
-        schema:
-          $ref: '../schemas/RetrieveRegistrationsRequest.yaml'
-        example:
-          id_token: eyJhbGciOiJSUzUxMiIsImtpZCI6ImV4YW1wbGUifQ.eyJpc3MiOiJodHRwczovL2F1dGguc2FuZHBpdC5zaWduaW4ubmhzLnVrIiwic3ViIjoiZXhhbXBsZSIsImF1ZCI6ImV4YW1wbGUtY2xpZW50IiwiZXhwIjoxNzkwMDAwMDAwLCJpZGVudGl0eV9wcm9vZmluZ19sZXZlbCI6IlA5In0.c2lnbmF0dXJl
+    - $ref: '../headers/request/NHSDIDToken.yaml'
   responses:
     '200':
       description: |
         A searchset Bundle of the patient's open registrations. Empty when
-        there are none.
+        there are none. Responses carry `Cache-Control: no-store`.
       headers:
         X-Request-ID:
           $ref: '../headers/response/XRequestID.yaml'

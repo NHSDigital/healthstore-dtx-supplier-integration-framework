@@ -13,13 +13,14 @@ call is made from inside the patient's NHS login session.
 
 | Method | Path | Request body | Returns |
 |---|---|---|---|
-| `POST` | `/registrations/retrieve` | `application/json`: `{ "id_token": "<the patient's NHS login ID token>" }` | `200` with a `searchset` Bundle of the patient's open registrations, `application/fhir+json`. Empty when there are none |
+| `GET` | `/registrations` | None. The patient's NHS login ID token in the `NHSD-ID-Token` header (exactly one value) | `200` with a `searchset` Bundle of the patient's open registrations, `application/fhir+json`. Empty when there are none |
 | `POST` | `/registrations/{registration-id}/tasks` | `application/fhir+json`: a lifecycle `Task`, `businessStatus` `registered` or `rejected`, `statusReason` coded | `200`, no body |
 
 ### Retrieve
 
-The request carries the ID token and nothing else. The bearer token fixes the
-supplier and the product; the ID token fixes the patient.
+The request has no body. The patient's NHS login ID token is carried in the
+`NHSD-ID-Token` header and nowhere else, never as a query parameter. The bearer
+token fixes the supplier and the product; the ID token fixes the patient.
 
 HealthStore verifies the ID token before returning anything:
 
@@ -31,6 +32,9 @@ HealthStore verifies the ID token before returning anything:
 | `aud` | Equals the NHS login `client_id` recorded against the calling credential at onboarding. Never taken from the request |
 | `identity_proofing_level` | `P9` |
 | NHS number | Present in the token's claims |
+
+These checks run in every environment. Under API Management they are not
+delegated: the proxy delivers the header; HealthStore verifies it.
 
 A token may be presented more than once within its validity; there is no
 single-use rule. An expired token draws `401` `TOKEN_EXPIRED`; the platform
@@ -64,8 +68,8 @@ registration already acknowledged with the same `businessStatus` is a no-op
 ## Authentication
 
 One credential set, held by the platform, used on every call. The patient's
-ID token is not a credential for the API; it is the content of the retrieve
-request.
+ID token is not a credential for the API; it is carried in the `NHSD-ID-Token`
+header of the retrieve request.
 
 ### Product identity is the credential
 
@@ -89,27 +93,38 @@ in the request names the product.
 
 ### Target: NHS England API Management
 
-Application-restricted, signed JWT. The security scheme is defined at
-`https://proxygen.prod.api.platform.nhs.uk/components/securitySchemes/app-level3`.
+User-restricted (NHS login, separate authentication and authorisation). The
+platform exchanges the patient's NHS login ID token for an access token at the
+API Management token endpoint, authenticating itself with a signed JWT.
 
 | Item | Detail |
 |---|---|
 | Register | NHS England developer portal |
-| Grant | OAuth 2.0 `client_credentials` |
+| Grant | OAuth 2.0 token exchange, `grant_type=urn:ietf:params:oauth:grant-type:token-exchange` |
 | Token endpoint | `/oauth2/token` |
+| Subject token | `subject_token` = the patient's NHS login ID token, `subject_token_type=urn:ietf:params:oauth:token-type:id_token` |
 | Client authentication | RS512-signed JWT assertion, `client_assertion_type=urn:ietf:params:oauth:client-assertion-type:jwt-bearer` |
 | Token | Bearer, JWT |
 | Scopes | None |
 
-Moving from the interim to the target changes where a token is obtained and
-how, and nothing else. The API calls, the bearer header, token caching against
-`expires_in`, refresh and `401` handling are the same throughout.
+The `client_assertion` is a JWT with `iss` and `sub` set to the API key, `aud`
+set to the token endpoint, a per-request `jti`, and `exp` no more than five
+minutes ahead, signed RS512 with a private key whose public half is registered
+with NHS England.
 
-At the token endpoint, `client_id` and `client_secret` are replaced by a
-`client_assertion`: a JWT with `iss` and `sub` set to the API key, `aud` set
-to the token endpoint, a per-request `jti`, and `exp` no more than five minutes
-ahead, signed RS512 with a private key whose public half is registered with NHS
-England.
+Moving from the interim to the target is exactly two changes on the platform's
+side:
+
+1. The token call moves to the API Management token exchange above. The
+   patient's ID token becomes the `subject_token` of that call.
+2. The platform stops sending the `NHSD-ID-Token` header. The API Management
+   proxy populates it from the exchange. If a platform keeps sending it, the
+   proxy discards that copy and substitutes the exchange-sourced one; no
+   error, no harm.
+
+Nothing else changes. The API calls, the bearer header, token caching against
+`expires_in`, refresh and `401` handling are the same throughout, and
+HealthStore verifies the ID token in every environment.
 
 ## Errors
 
@@ -123,6 +138,7 @@ retryable.
 | An element is the wrong type or format | 400 | `INVALID_VALUE` | Terminal |
 | An element has a value outside its value set, or a `statusReason` that does not fit the `businessStatus` | 400 | `INVALID_CODE` | Terminal |
 | A required header is absent | 400 | `MISSING_HEADER` | Terminal |
+| `NHSD-ID-Token` appears more than once | 400 | `INVALID_VALUE` | Terminal |
 | No bearer token, or one that is invalid or expired | 401 | `NO_ACCESS` | Terminal: obtain a new access token |
 | ID token malformed, signature not verified, or `iss` wrong | 401 | `TOKEN_INVALID` | Terminal: re-authenticate the patient |
 | ID token expired | 401 | `TOKEN_EXPIRED` | Terminal: re-authenticate the patient |
@@ -169,3 +185,9 @@ Not part of the contract; recorded so the design's monitoring is visible.
   platform that retrieves but never acknowledges, so the alert does that job.
 - Registration status shown to the clinical team is derived from the same
   record: invited, not yet signed in, registered, rejected, expired.
+- Under API Management the proxy removes inbound `NHSD-*` headers before
+  setting `NHSD-ID-Token` from the token exchange: set, not add, so the
+  header always has exactly one value and it is always the exchange-sourced
+  one.
+- `NHSD-ID-Token` is excluded from access logging, and retrieve responses are
+  marked `Cache-Control: no-store`.

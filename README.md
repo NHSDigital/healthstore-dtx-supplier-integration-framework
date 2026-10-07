@@ -1,20 +1,23 @@
 # HealthStore DTx supplier integration
 
 The integration contract between HealthStore and a digital therapeutics (DTx)
-supplier's platform: the Registration API's OpenAPI specification, its FHIR
+supplier's platform: the Registration API's OpenAPI specification, its FHIR R4
 definitions, the examples, the tests that prove them, and the documentation.
+
+>### Scope: PRIVATE BETA
 
 ## The integration at a glance
 
 ![v1.0 registration sequence](docs/registration-api/registration-sequence.png)
 
 1. A clinician requests a DTx for a patient in HealthStore. The patient is
-   invited by NHS App message or SMS, with a link to your product.
-2. The patient opens your product and signs in with NHS login, as today.
+   invited by NHS App message or SMS, with a link to your app.
+2. The patient opens your app and signs in with NHS login, as today.
 3. Your backend calls NHS login `/userinfo` for the patient's demographics,
    verified at source.
-4. On every NHS login sign-in, your backend calls `POST /registrations/retrieve`
-   with the patient's ID token and receives their open registrations.
+4. On every NHS login sign-in, your backend calls `GET /registrations`
+   with the patient's ID token in the `NHSD-ID-Token` header and receives
+   their open registrations.
 5. Your backend acknowledges each registration, registered or rejected with a
    coded reason, seconds later in the same sign-in.
 
@@ -23,8 +26,8 @@ no inbound API, run no queue and do no polling.
 
 ## Three things to know
 
-**How the patient reaches your product.** A standard App Link / Universal
-Link from the NHS App message or programme page. Your product opens with no
+**How the patient reaches your app.** A standard App Link / Universal
+Link from a dedicated HealthStore page in the NHS App. Your app opens with no
 context and the patient signs in with NHS login. There is no app-to-app
 sign-on integration to build for private beta. Because you retrieve on every
 NHS login sign-in, a patient with an open registration is registered even if
@@ -32,13 +35,14 @@ they reach your product without the NHS App; for anyone else the retrieve
 returns an empty Bundle.
 [How and why this changed from the draft](docs/registration-api/change-log.md#1-how-the-patient-reaches-your-product)
 
-**Registration is synchronous, at sign-in.** One exchange, inside the
-patient's session, keyed by the patient's own ID token. There is no state to
-reconcile between HealthStore and your platform, and a registration that is
-retrieved but not acknowledged is simply presented again at the next sign-in.
+**Registration is synchronous, at sign-in.** One GET request, inside the
+patient's session, with only the patient's ID token in the `NHSD-ID-Token` header. There is
+no state to reconcile between HealthStore and your platform, and a registration
+that is retrieved but not acknowledged is simply presented again at the next sign-in.
+A single OAuth2 endpoint provides access tokens for all interactions.
 [How and why this changed from the draft](docs/registration-api/change-log.md#2-registration-is-synchronous-at-sign-in)
 
-**A registration carries four fields, plus an interim set of three.** The
+**A registration comprises four fields, plus an interim set of three.** The
 four are the registration identifier, an intervention code from your own
 published catalogue, the contracting organisation's ODS code, and the
 patient's administrative gender. Until NHS login grants you the
@@ -49,12 +53,12 @@ your own NHS login `/userinfo` call.
 
 ## Documents
 
-- [Design overview](docs/registration-api/overview.md): the model, the flow, the rationale
-- [FHIR resources and fields](docs/registration-api/fhir.md): the ServiceRequest, the contained Patient, the Task, and what comes from NHS login instead
+- [Design overview](docs/registration-api/overview.md): the model, flow, and rationale
+- [FHIR resources and fields](docs/registration-api/fhir.md): the ServiceRequest, contained Patient, Task, and what comes from NHS login instead
 - [Resources, authentication, errors](docs/registration-api/resources.md)
 - [What changed from the v0.1 draft, and why](docs/registration-api/change-log.md): with the field reference and the interim annex
-- [Lifecycle](docs/registration-api/lifecycle.md): follows as a versioned change
-- [v0.1 open questions](docs/registration-api/open-questions-and-decisions.md): superseded, kept for the record
+- [Lifecycle](docs/registration-api/lifecycle.md): fast follow as a versioned change
+- [v0.1 open questions](docs/registration-api/open-questions-and-decisions.md): superseded by the [change log](docs/registration-api/change-log.md), kept for the record
 
 ## The specification
 
@@ -89,7 +93,7 @@ npm run test:integration
 - [docs/archive](docs/archive): v0.1 draft documents and the deprecated DTx
   Integration API with its Postman collection, superseded in full.
 - [examples/reference-supplier](examples/reference-supplier): reflects the
-  v0.1 draft transport and is no longer built. A v1.0 reference
+  v0.1 draft Integration API and is no longer built. A v1.0 reference
   implementation accompanies conformance testing.
 
 ## How to contribute

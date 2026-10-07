@@ -2,7 +2,7 @@
 
 ## 1. FHIR R4 Patient: provides demographics not available from NHS Login
 
-This is profiled on `UKCore-Patient` and returned by `POST /registrations/retrieve` contained in a ServiceRequest.
+This is profiled on `UKCore-Patient` and returned by `GET /registrations` contained in a ServiceRequest.
 
 As described in the [change log](change-log.md), all demographic data is to be sourced
 from NHS login, to the extent that your current scopes allow. While waiting for NHS login
@@ -33,7 +33,7 @@ in the specification and will be removed when appropriate.
 
 ## 2. FHIR R4 ServiceRequest: provides the remaining registration data
 
-This is profiled on `UKCore-ServiceRequest` and returned by `POST /registrations/retrieve`
+This is profiled on `UKCore-ServiceRequest` and returned by `GET /registrations`
 
 ### 2.1 ServiceRequest: interim data shape
 
@@ -66,7 +66,7 @@ as described in Section 1, above.
 
 > ⚠️ **This ServiceRequest cannot be used to identify the patient.**
 >
-> As required by the [retrieve operation](../../specification/components/endpoints/postRetrieveRegistrations.yaml) in the OpenAPI specification, the fetch from the Registrations API must happen immediately after
+> As required by the [retrieve operation](../../specification/components/endpoints/getRegistrations.yaml) in the OpenAPI specification, the fetch from the Registrations API must happen immediately after
 > the fetch from NHS login /userinfo, with both operations running synchronously in the same process.
 > **The patient must be identified using the NHS Number from the preceding /userinfo response.**
 >

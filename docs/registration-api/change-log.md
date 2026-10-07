@@ -4,7 +4,7 @@
 
 ## In one paragraph
 
-v1.0 is a major simplification. Registration completes in one synchronous exchange at the moment the patient signs in to your product: your backend calls NHS login `/userinfo` for the patient's demographics, then calls the Registration API with the patient's ID token, receives their open registrations, and acknowledges each one. A registration carries four fields: the registration identifier, an intervention code from your own catalogue, the contracting organisation's ODS code and the patient's administrative gender. Until NHS login grants you the `profile_extended`, `email` and `phone` scopes, it also carries an interim set of three demographics: given name, email and phone (field reference C). Everything else about the patient comes from your own NHS login `/userinfo` call. You host no inbound API, run no queue and do no polling, and no patient data reaches you before the patient has signed in and approved the sharing.
+v1.0 is a major simplification. Registration completes in one synchronous exchange at the moment the patient signs in to your product: your backend calls NHS login `/userinfo` for the patient's demographics, then calls the Registration API with the patient's ID token in the `NHSD-ID-Token` header, receives their open registrations, and acknowledges each one. A registration carries four fields: the registration identifier, an intervention code from your own catalogue, the contracting organisation's ODS code and the patient's administrative gender. Until NHS login grants you the `profile_extended`, `email` and `phone` scopes, it also carries an interim set of three demographics: given name, email and phone (field reference C). Everything else about the patient comes from your own NHS login `/userinfo` call. You host no inbound API, run no queue and do no polling, and no patient data reaches you before the patient has signed in and approved the sharing.
 
 ## Where the changes came from
 
@@ -23,7 +23,7 @@ The remaining changes are programme mechanisms and data minimisation. Every fiel
 2. The patient is invited via NHS App message / SMS. **Nothing is sent to you at this point.**
 3. The patient opens your product and signs in with NHS login — your existing integration, unchanged.
 4. Your backend calls NHS login `/userinfo` and receives the patient's demographics, verified at source (details in the field reference below).
-5. On every NHS login sign-in, your backend calls `POST /registrations/retrieve` with the patient's NHS login **ID token**. We verify the token; you receive the patient's open registrations: **four fields each, plus the interim demographics until your NHS login scopes are granted** (field reference C).
+5. On every NHS login sign-in, your backend calls `GET /registrations` with the patient's NHS login **ID token** in the `NHSD-ID-Token` header. We verify the token; you receive the patient's open registrations: **four fields each, plus the interim demographics until your NHS login scopes are granted** (field reference C).
 6. You run your local checks and **acknowledge each registration** — registered, or rejected with a coded reason — seconds later, same login event.
 7. Registered means registered: the patient continues in your product; usage reporting proceeds per `registration_id`.
 8. A registration stays open until you acknowledge it, and is returned at every sign-in until then.
@@ -68,15 +68,16 @@ v1.0 removes the machinery by removing the second copy. Registration completes i
 |---|---|---|---|---|---|
 | 1 | Transport | Task push to supplier-hosted API, then pull of cohorts/registrations, paging, lifecycle Task push-back | Synchronous retrieve + acknowledgement inside the patient's login event; all calls supplier→platform | Removes reconciliation and state-sync failure modes; no patient data moves before the patient signs in | Supplier feedback 10 Aug; a supplier's deferred-creation proposal (PR #8, 19 Aug) taken to completion; IG position |
 | 2 | Cohorts & paging | `groupIdentifier` cohorts, `process-available-service-requests`, paged pulls | **Removed.** Bulk is intake-side only | The open questions (static vs dynamic, paging against a reducing set) cease to exist | Closes 10 Aug open questions |
-| 3 | Query key | Registration/cohort identifiers | The patient's NHS login **ID token** (we verify signature, audience, P9; no NHS-number parameter exists). No other request field | Registration is provably tied to the authenticated patient; arbitrary lookup is impossible by construction | Programme (security) |
+| 3 | Query key | Registration/cohort identifiers | The patient's NHS login **ID token**, sent as the `NHSD-ID-Token` header (we verify signature, audience, P9; no NHS-number parameter exists). No other request field | Registration is provably tied to the authenticated patient; arbitrary lookup is impossible by construction | Programme (security) |
 | 4 | Idempotency | Unspecified | Structural: retrieval is read-only and acknowledgement is keyed by `registration_id`, both re-runnable; a registration is returned at every login until acknowledged, and a repeat acknowledgement is a no-op | — | **Supplier suggestion, adopted** |
 | 17 | System URIs and hosts | `https://fhir.healthstore.nhs.uk/...` identifier and CodeSystem URIs; representative `api.healthstore.nhs.uk` host | `https://fhir.dtx.national.nhs.uk/...`; hosts `api.{env}.dtx.national.nhs.uk` | The tag makes URIs change-controlled; pre-tag is the only free moment to rename. A system-string swap is a configuration constant on your side, the same class as the acknowledgement-code enum change | Programme |
+| 20 | Retrieve carriage & verb | `POST /registrations/retrieve` with request body `{ id_token }` | **`GET /registrations`** with the ID token in the **`NHSD-ID-Token`** request header; no request body | Retrieval is read-only and idempotent, which is what GET means — it was POST only because the body carried the token. `NHSD-ID-Token` is the established NHS England carriage for a patient's NHS login ID token and is exactly what the APIM user-restricted pattern delivers, so APIM onboarding becomes a configuration change: the token moves into your token exchange and the header is simply dropped | Programme — HTTP semantics; APIM and Patient Care Aggregator precedent |
 
 ### What carries over from a v0.1 build
 
 **Carries over:** your NHS login integration (now doing slightly more of the work), field validation logic, account-provisioning and database writes, your registration process end to end.
 **Retired:** the inbound trigger endpoint, the cohort/registration pull client and its queueing (e.g. SQS), paging logic, lifecycle Task push, and most of the payload parsing — the retrieve response is four fields.
-**The shape of the change:** one process, two sequential calls (`/userinfo`, then `/registrations/retrieve`), same validation, same database write. Some attributes now come from a different JSON, and the diff to your code is **deletions**.
+**The shape of the change:** one process, two sequential calls (`/userinfo`, then `GET /registrations`), same validation, same database write. Some attributes now come from a different JSON, and the diff to your code is **deletions**.
 
 
 ## 3. What a registration carries
@@ -130,7 +131,7 @@ While NHS login scope grants are pending, a small uniform interim set travels on
 
 ## Field reference
 
-### A. Returned by `POST /registrations/retrieve` — per registration
+### A. Returned by `GET /registrations` — per registration
 
 | Field | Card. | Type | Purpose |
 |---|---|---|---|
@@ -139,7 +140,7 @@ While NHS login scope grants are pending, a small uniform interim set travels on
 | `contracting_org_ods` | 1..1 | ODS code | The commissioning body — contractual and reporting anchor |
 | `gender` | 1..1 | code (4 values) | PDS **administrative gender** — carried only because NHS login does not provide it. Value mapping to your model is supplier-side. Note for your clinical teams: administrative gender is not clinical sex |
 
-Envelope: a FHIR `searchset` Bundle of the patient's open registrations. Request: `{ id_token }` and nothing else. Retrieval is read-only: a registration stays open until you acknowledge it and is returned at every login until then. Multi-product suppliers register one platform credential per product; the credential, not the request, decides which product's registrations are returned and may be acknowledged.
+Envelope: a FHIR `searchset` Bundle of the patient's open registrations. Request: `GET /registrations`, no body; the patient's ID token travels in the `NHSD-ID-Token` header and nowhere else. Retrieval is read-only: a registration stays open until you acknowledge it and is returned at every login until then. Multi-product suppliers register one platform credential per product; the credential, not the request, decides which product's registrations are returned and may be acknowledged.
 
 **Tolerant reader rule.** Your parser MUST ignore response fields it does not recognise. Future additions (e.g. the reserved `registration_basis` provenance field, or a condition annotation) will be additive and non-breaking; nothing will be repurposed or renamed.
 

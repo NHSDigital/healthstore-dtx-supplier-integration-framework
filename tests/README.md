@@ -21,8 +21,8 @@ does. The mock is therefore the thing under test, and it proves two things:
   no registrations, `OperationOutcome` error bodies, `Retry-After` on 429.
 - **The request shapes a supplier will send are accepted, and the ones the
   contract removed are refused.** Prism validates every request against the
-  spec. A missing `id_token`, an extra `product_id`, a missing `X-Request-ID`,
-  a v0.1 `businessStatus` or `statusReason`: each draws the operation's
+  spec. A missing `NHSD-ID-Token`, a missing `X-Request-ID`, a v0.1
+  `businessStatus` or `statusReason`: each draws the operation's
   `400` with its `OperationOutcome` example. The assertion is that the spec
   rejects the shape.
 

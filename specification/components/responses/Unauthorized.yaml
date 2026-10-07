@@ -45,7 +45,7 @@ content:
                   - code: TOKEN_EXPIRED
               diagnostics: The ID token expired at 2026-09-26T10:15:00Z
               expression:
-                - id_token
+                - NHSD-ID-Token
       wrong-audience:
         summary: ID token issued to a different client
         value:
@@ -58,4 +58,4 @@ content:
                   - code: WRONG_AUDIENCE
               diagnostics: The ID token's aud does not match the NHS login client id registered for this credential
               expression:
-                - id_token
+                - NHSD-ID-Token
