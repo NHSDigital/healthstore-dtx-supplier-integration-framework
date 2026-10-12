@@ -1,0 +1,19 @@
+in: header
+name: NHSD-ID-Token
+required: true
+description: |
+  The ID token issued by NHS login for the patient's current session, as
+  received by the DTx platform, unmodified. A signed JWT (JWS compact
+  serialisation). Carried only in this header, never as a query parameter.
+
+  Exactly one value: a request carrying more than one NHSD-ID-Token header
+  is refused with 400 INVALID_VALUE. A request without it is refused with
+  400 MISSING_HEADER.
+
+  Required until your product consumes this API through NHS England API
+  Management as a user-restricted API. From that point, do not send it:
+  the API Management proxy populates this header from your token exchange
+  and discards any copy you send.
+schema:
+  type: string
+  pattern: '^[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+$'

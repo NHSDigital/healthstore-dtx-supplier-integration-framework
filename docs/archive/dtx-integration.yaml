@@ -2,11 +2,15 @@ openapi: "3.0.3"
 info:
   title: DTx Integration API
   version: "0.1.0"
+  description: |
+    Deprecated pending MI data feed integration and no longer planned for
+    use.
 
 paths:
   /pathway-events:
     post:
       operationId: submitPathwayEvent
+      deprecated: true
       security:
         - ApiKey: []
       parameters:
@@ -143,7 +147,7 @@ components:
           enum: [fatal, error, warning, information]
         code:
           type: string
-          enum: [required, value, structure, exception, informational]
+          enum: [required, value, structure, duplicate, exception, informational]
         diagnostics:
           type: string
         expression:

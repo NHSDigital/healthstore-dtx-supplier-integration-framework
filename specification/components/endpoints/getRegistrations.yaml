@@ -1,0 +1,147 @@
+get:
+  operationId: retrieveRegistrations
+  tags:
+    - registrations
+  summary: Retrieve the authenticated patient's open registrations
+  description: |
+    Called by the DTx supplier's backend inside the patient's NHS login
+    session, immediately after its own call to NHS login /userinfo. The two
+    calls MUST run synchronously, in the same process: the patient is
+    identified by the NHS number in the /userinfo response, and the
+    registrations returned here carry no patient identifier of their own.
+    The request has no body. The patient's NHS login ID token is carried in
+    the `NHSD-ID-Token` header and nowhere else — never as a query
+    parameter.
+
+    The DTx platform MUST call this operation on every NHS login sign-in,
+    whichever route brought the patient to the product. The launch link
+    carries no context that would distinguish one, and a registration that
+    was retrieved but not acknowledged is re-presented only if the next
+    sign-in retrieves.
+
+    HealthStore verifies the token before returning anything: JWS
+    signature against NHS login's published JWKS (cached, refetched on an
+    unknown kid), iss for the environment, exp, aud equal to the NHS login
+    client id recorded against the calling credential at onboarding, and
+    identity_proofing_level P9. A token may be presented more than once
+    within its validity; there is no single-use rule.
+
+    Returns every open registration for the token's patient and the calling
+    credential's product, as a searchset Bundle. No open registrations is a
+    200 with an empty Bundle, not an error.
+
+    Retrieval is read-only. A registration stays open until acknowledged
+    with a Task and is returned at every sign-in until then. A DTx supplier
+    that retrieves and then fails before acknowledging simply sees the
+    registration again at the next sign-in.
+  parameters:
+    - $ref: '../headers/request/XRequestID.yaml'
+    - $ref: '../headers/request/XCorrelationID.yaml'
+    - $ref: '../headers/request/NHSDIDToken.yaml'
+  responses:
+    '200':
+      description: |
+        A searchset Bundle of the patient's open registrations. Empty when
+        there are none. Responses carry `Cache-Control: no-store`.
+      headers:
+        X-Request-ID:
+          $ref: '../headers/response/XRequestID.yaml'
+        X-Correlation-ID:
+          $ref: '../headers/response/XCorrelationID.yaml'
+      content:
+        application/fhir+json:
+          schema:
+            $ref: '../schemas/RegistrationBundle.yaml'
+          examples:
+            one-registration:
+              summary: One open registration
+              value:
+                resourceType: Bundle
+                type: searchset
+                total: 1
+                entry:
+                  - resource:
+                      resourceType: ServiceRequest
+                      meta:
+                        profile:
+                          - 'https://fhir.hl7.org.uk/StructureDefinition/UKCore-ServiceRequest'
+                      contained:
+                        - resourceType: Patient
+                          id: patient
+                          gender: female
+                      extension:
+                        - url: 'https://fhir.dtx.national.nhs.uk/StructureDefinition/Extension-ContractingOrganisation'
+                          valueIdentifier:
+                            system: 'https://fhir.nhs.uk/Id/ods-organization-code'
+                            value: QWU
+                      identifier:
+                        - system: 'https://fhir.dtx.national.nhs.uk/Id/registration'
+                          value: 7e1f4c8d-2b5a-49e0-8c6f-1d3a9b0e5f27
+                      status: active
+                      intent: order
+                      code:
+                        coding:
+                          - system: 'https://fhir.dtx.national.nhs.uk/CodeSystem/intervention-example-supplier'
+                            version: '2026-09'
+                            code: hypertension-remote-monitoring
+                      subject:
+                        reference: '#patient'
+            with-interim-demographics:
+              summary: One open registration, with the interim demographics (given name, email, phone) carried until the DTx platform's NHS login scopes are granted
+              value:
+                resourceType: Bundle
+                type: searchset
+                total: 1
+                entry:
+                  - resource:
+                      resourceType: ServiceRequest
+                      meta:
+                        profile:
+                          - 'https://fhir.hl7.org.uk/StructureDefinition/UKCore-ServiceRequest'
+                      contained:
+                        - resourceType: Patient
+                          id: patient
+                          gender: female
+                          name:
+                            - use: official
+                              given:
+                                - Jane
+                          telecom:
+                            - system: email
+                              value: jane.smith@example.com
+                              use: home
+                            - system: phone
+                              value: '+447700900123'
+                              use: mobile
+                      extension:
+                        - url: 'https://fhir.dtx.national.nhs.uk/StructureDefinition/Extension-ContractingOrganisation'
+                          valueIdentifier:
+                            system: 'https://fhir.nhs.uk/Id/ods-organization-code'
+                            value: QWU
+                      identifier:
+                        - system: 'https://fhir.dtx.national.nhs.uk/Id/registration'
+                          value: 7e1f4c8d-2b5a-49e0-8c6f-1d3a9b0e5f27
+                      status: active
+                      intent: order
+                      code:
+                        coding:
+                          - system: 'https://fhir.dtx.national.nhs.uk/CodeSystem/intervention-example-supplier'
+                            version: '2026-09'
+                            code: hypertension-remote-monitoring
+                      subject:
+                        reference: '#patient'
+            none:
+              summary: No open registrations
+              value:
+                resourceType: Bundle
+                type: searchset
+                total: 0
+                entry: []
+    '400':
+      $ref: '../responses/BadRequest.yaml'
+    '401':
+      $ref: '../responses/Unauthorized.yaml'
+    '429':
+      $ref: '../responses/TooManyRequests.yaml'
+    '503':
+      $ref: '../responses/ServiceUnavailable.yaml'

@@ -1,0 +1,39 @@
+title: InterventionCode
+description: |
+  Which of the DTx platform's interventions was requested. One Coding, from
+  the DTx supplier's own catalogue, published to HealthStore and versioned. The
+  clinician selects the condition and confirms the intervention from the set
+  commissioned under the arrangement; a sole commissioned option is
+  preselected, never silently applied. The DTx platform always receives one
+  concrete code it issued and a clinician confirmed.
+
+  Replaces v0.1's care_path_code.
+type: object
+required:
+  - coding
+properties:
+  coding:
+    type: array
+    minItems: 1
+    maxItems: 1
+    items:
+      type: object
+      required:
+        - system
+        - version
+        - code
+      properties:
+        system:
+          type: string
+          pattern: '^https://fhir\.dtx\.national\.nhs\.uk/CodeSystem/intervention-[a-z0-9-]+$'
+          description: One CodeSystem per DTx platform, named at onboarding.
+        version:
+          type: string
+          description: The catalogue version the code was resolved against.
+        code:
+          type: string
+          description: The intervention code, as issued by the DTx supplier in its catalogue.
+        display:
+          type: string
+  text:
+    type: string

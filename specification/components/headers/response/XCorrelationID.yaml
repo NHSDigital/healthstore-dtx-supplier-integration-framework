@@ -1,0 +1,3 @@
+description: The X-Correlation-ID of the request, returned unchanged.
+schema:
+  type: string

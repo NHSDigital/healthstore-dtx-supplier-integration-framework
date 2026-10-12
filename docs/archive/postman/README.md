@@ -2,7 +2,7 @@
 
 Reference Postman collection for integrators submitting FHIR transaction Bundles to the partner-shared DTx Integration API.
 
-Spec: [`schemas/dtx-integration.yaml`](../../schemas/dtx-integration.yaml).
+Spec: [`dtx-integration.yaml`](../dtx-integration.yaml).
 
 ## Contents
 

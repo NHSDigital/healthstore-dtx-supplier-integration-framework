@@ -1,0 +1,19 @@
+title: EmailContactPoint
+description: The patient's email address. use is fixed to home.
+type: object
+required:
+  - system
+  - value
+  - use
+properties:
+  system:
+    type: string
+    enum:
+      - email
+  value:
+    type: string
+    format: email
+  use:
+    type: string
+    enum:
+      - home

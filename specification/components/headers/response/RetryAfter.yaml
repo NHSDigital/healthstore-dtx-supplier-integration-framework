@@ -1,0 +1,6 @@
+description: Seconds to wait before retrying.
+required: true
+schema:
+  type: integer
+  minimum: 1
+  example: 1

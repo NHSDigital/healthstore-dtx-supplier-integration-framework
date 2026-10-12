@@ -1,0 +1,5 @@
+description: The X-Request-ID of the request, mirrored back.
+required: true
+schema:
+  type: string
+  format: uuid

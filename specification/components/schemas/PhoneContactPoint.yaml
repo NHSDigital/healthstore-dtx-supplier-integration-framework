@@ -1,0 +1,24 @@
+title: PhoneContactPoint
+description: The patient's phone number.
+type: object
+required:
+  - system
+  - value
+properties:
+  system:
+    type: string
+    enum:
+      - phone
+  value:
+    type: string
+    pattern: '^\+[1-9]\d{1,14}$'
+    description: E.164.
+  use:
+    type: string
+    enum:
+      - home
+      - work
+      - temp
+      - old
+      - mobile
+      - billing

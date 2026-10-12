@@ -1,0 +1,77 @@
+title: ContainedPatient
+description: |
+  The patient, contained within the ServiceRequest. Conforms to
+  UKCore-Patient 2.5.0, which mandates nothing.
+
+  Carries administrative gender only. NHS login does not provide it, so it
+  is the one demographic that travels here. Every other demographic comes
+  from the DTx platform's own NHS login /userinfo call inside the same session.
+
+  name and telecom are interim and deprecated on arrival. They carry
+  one uniform set for every DTx platform: given name, email and phone. They
+  are withdrawn on a date agreed with DTx suppliers, announced as a
+  versioned change, the same for every DTx platform.
+
+  Sourcing rule: userinfo-first, payload-fallback. For each item, take the
+  /userinfo claim when your scopes provide it; otherwise take the Patient
+  element.
+type: object
+required:
+  - resourceType
+  - id
+  - gender
+properties:
+  resourceType:
+    type: string
+    enum:
+      - Patient
+  id:
+    type: string
+    description: The target of ServiceRequest.subject.reference.
+  gender:
+    type: string
+    enum:
+      - male
+      - female
+      - other
+      - unknown
+    description: |
+      PDS administrative gender. Administrative gender is not clinical
+      sex. Mapping to the DTx platform's own model is the DTx supplier's.
+  name:
+    type: array
+    maxItems: 1
+    deprecated: true
+    description: |
+      Interim: the patient's given name(s). The same for every
+      DTx platform; withdrawn on the agreed date. userinfo-first,
+      payload-fallback: take given_name from /userinfo when the
+      profile_extended scope provides it; otherwise take this element.
+    items:
+      type: object
+      required:
+        - use
+        - given
+      properties:
+        use:
+          type: string
+          enum:
+            - official
+        given:
+          type: array
+          minItems: 1
+          items:
+            type: string
+  telecom:
+    type: array
+    maxItems: 2
+    deprecated: true
+    description: |
+      Interim: the patient's email and phone. The same for every
+      DTx platform; withdrawn on the agreed date. userinfo-first,
+      payload-fallback: take email and phone_number from /userinfo when the
+      email and phone scopes provide them; otherwise take these elements.
+    items:
+      oneOf:
+        - $ref: './EmailContactPoint.yaml'
+        - $ref: './PhoneContactPoint.yaml'

@@ -1,0 +1,46 @@
+title: AcknowledgementReason
+description: |
+  Why the DTx platform acknowledged the registration as it did. Required with
+  businessStatus rejected; optional with registered, where the only valid
+  value is already-registered.
+
+  | code | with | meaning |
+  |---|---|---|
+  | already-registered | registered | The DTx platform already held an account for this patient and intervention and linked it. A success; the registration is fulfilled. |
+  | licence-exhausted | rejected | No licence available. The contract schedule warrants licence availability, so this is treated as an incident. |
+  | intervention-not-configured | rejected | The intervention code is not configured for the commissioning organisation, or the organisation is not known to the DTx platform. |
+  | other | rejected | Any other reason. Task.note is required. |
+type: object
+required:
+  - coding
+properties:
+  coding:
+    type: array
+    minItems: 1
+    maxItems: 1
+    items:
+      type: object
+      required:
+        - system
+        - code
+      properties:
+        system:
+          type: string
+          enum:
+            - 'https://fhir.dtx.national.nhs.uk/CodeSystem/acknowledgement-reason'
+        code:
+          type: string
+          enum:
+            - already-registered
+            - licence-exhausted
+            - intervention-not-configured
+            - other
+        display:
+          type: string
+          enum:
+            - Patient already registered; existing account linked
+            - No licence available
+            - Intervention not configured for the commissioning organisation
+            - Other reason, see note
+  text:
+    type: string
