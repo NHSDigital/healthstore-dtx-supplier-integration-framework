@@ -28,8 +28,41 @@ in the specification and will be removed when appropriate.
 
 >⚠️ **Administrative gender is not clinical sex.**
 >
-> The value is PDS administrative gender, one of [four codes](https://archive.datadictionary.nhs.uk/DD%20Release%20May%202024/attributes/person_gender_code.html). Mapping this to the DTx platform's model
+> The value is PDS administrative gender. Mapping this to the DTx platform's model
 > must be done by the DTx supplier. This field should not be used for clinical purposes.
+
+### 1.1 Gender: source and mapping
+
+`Patient.gender` is bound to FHIR R4 `administrative-gender`. The value is
+sourced from PDS, whose own FHIR API describes it as "the gender that is
+recorded on official documents, for example a birth certificate or passport",
+and notes that "for some people, the gender held in PDS might not match the
+gender they identify with".
+
+The underlying NHS data item is
+[PERSON GENDER CODE](https://archive.datadictionary.nhs.uk/DD%20Release%20May%202024/attributes/person_gender_code.html)
+in the NHS Data Dictionary, which the dictionary itself describes as
+"phenotypical rather than genotypical" and not for "medical or scientific
+purposes". Its four national codes map onto the four values of our enum as
+follows:
+
+| NHS Data Dictionary code | NHS Data Dictionary meaning | `Patient.gender` |
+|---|---|---|
+| `1` | Male | `male` |
+| `2` | Female | `female` |
+| `9` | Not Specified (indeterminate, unable to be classified as either male or female) | `other` |
+| `0` | Not Known (not recorded) | `unknown` |
+
+This is the same correspondence HL7 UK publishes in its ConceptMap from
+`administrative-gender` to the Data Dictionary gender codes. `other` is never
+a free-text or self-described value in this API; it is the Data Dictionary's
+indeterminate code. `unknown` means PDS holds no recorded value, not that
+HealthStore failed to look it up: `gender` is always present.
+
+The Data Dictionary notes that PERSON GENDER CODE is to be replaced by PERSON
+STATED GENDER CODE or PERSON PHENOTYPIC SEX CLASSIFICATION. If PDS moves to
+either, the FHIR value set and this API's enum do not change; only the
+left-hand column of the table above would.
 
 ## 2. FHIR R4 ServiceRequest: provides the remaining registration data
 
@@ -258,7 +291,82 @@ patient's session. Same path and shape as v0.1.
 Because the Task can only be sent from inside the patient's authenticated
 session, `registered` proves the patient has signed in.
 
-### 3.1 Registration outcome reasons
+### 3.1 Task: examples
+
+Registered. `status` is the Task's own FHIR workflow state; `accepted`
+is what v0.1 used and remains valid.
+
+```json
+{
+  "resourceType": "Task",
+  "status": "accepted",
+  "intent": "order",
+  "businessStatus": {
+    "coding": [{
+      "system": "https://fhir.dtx.national.nhs.uk/CodeSystem/registration-business-status",
+      "code": "registered",
+      "display": "Registered"
+    }]
+  }
+}
+```
+
+Registered by linking an account the platform already held. The only
+`statusReason` valid with `registered`.
+
+```json
+{
+  "resourceType": "Task",
+  "status": "accepted",
+  "intent": "order",
+  "businessStatus": {
+    "coding": [{
+      "system": "https://fhir.dtx.national.nhs.uk/CodeSystem/registration-business-status",
+      "code": "registered",
+      "display": "Registered"
+    }]
+  },
+  "statusReason": {
+    "coding": [{
+      "system": "https://fhir.dtx.national.nhs.uk/CodeSystem/acknowledgement-reason",
+      "code": "already-registered",
+      "display": "Patient already registered; existing account linked"
+    }]
+  }
+}
+```
+
+Rejected, with a coded reason. `statusReason` is required with `rejected`,
+and `note` is required where the reason is `other`.
+
+```json
+{
+  "resourceType": "Task",
+  "status": "rejected",
+  "intent": "order",
+  "businessStatus": {
+    "coding": [{
+      "system": "https://fhir.dtx.national.nhs.uk/CodeSystem/registration-business-status",
+      "code": "rejected",
+      "display": "Rejected"
+    }]
+  },
+  "statusReason": {
+    "coding": [{
+      "system": "https://fhir.dtx.national.nhs.uk/CodeSystem/acknowledgement-reason",
+      "code": "other",
+      "display": "Other reason, see note"
+    }]
+  },
+  "note": [{ "text": "Patient is under 16 and the product is licensed for adults only" }]
+}
+```
+
+The same three, plus `licence-exhausted` and `intervention-not-configured`,
+are the request examples on `POST /registrations/{registration-id}/tasks` in
+the specification, and are validated against base R4 in CI.
+
+### 3.2 Registration outcome reasons
 
 System `https://fhir.dtx.national.nhs.uk/CodeSystem/acknowledgement-reason`.
 
@@ -308,7 +416,7 @@ its `valueIdentifier` is the ODS row above. The StructureDefinition is in
 
 - `ServiceRequest.status`: `active`. Only open registrations are returned.
 - `ServiceRequest.intent`: `order`.
-- `Patient.gender`: `administrative-gender`, unchanged.
+- `Patient.gender`: `administrative-gender`, mapped from the NHS Data Dictionary PERSON GENDER CODE as in section 1.1.
 - `Task.status`, `Task.intent`: the FHIR R4 sets, unchanged.
 - `Task.businessStatus`, `Task.statusReason`: the code systems above.
 
@@ -330,6 +438,12 @@ The `fhir.hl7.org.uk` profiles:
 - UK Core packages: https://simplifier.net/packages/fhir.r4.ukcore.stu2
 - UK Core browsable: https://simplifier.net/hl7fhirukcorer4
 - UK Core governance: https://digital.nhs.uk/services/fhir-uk-core
+
+Gender:
+
+- NHS Data Dictionary, PERSON GENDER CODE: https://archive.datadictionary.nhs.uk/DD%20Release%20May%202024/attributes/person_gender_code.html
+- PDS FHIR API, `Patient.gender`: https://digital.nhs.uk/developer/api-catalogue/personal-demographics-service-fhir
+- FHIR R4 `administrative-gender`: https://hl7.org/fhir/R4/valueset-administrative-gender.html
 
 NHS login:
 
