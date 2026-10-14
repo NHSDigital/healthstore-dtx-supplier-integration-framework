@@ -1,13 +1,17 @@
 # NHS Health Store Registrations API quickstart
 
-You need `curl`, `base64` and a Unix shell, plus the client ID, client secret, token URL and API base URL we have sent you separately. The script also needs `uuidgen`.
+You need `curl`, `base64` and a Unix shell. The script also needs `uuidgen`.
 
-| | |
+Export these from the file we have sent you:
+
+| Variable | What it is |
 |---|---|
-| Token URL | `TOKEN_URL` |
-| Scope | `registrations/access` |
-| API base URL | `API_BASE_URL` |
-| Contract | Registrations API v1.0.0, in [`healthstore-dtx-supplier-integration-framework`](https://github.com/NHSDigital/healthstore-dtx-supplier-integration-framework) |
+| `CLIENT_ID` | Your client ID |
+| `CLIENT_SECRET` | Your client secret |
+| `TOKEN_URL` | Where you get access tokens |
+| `API_BASE_URL` | The base URL of the integration environment |
+
+The contract is the Registrations API v1.0.0 in [`specification/healthstore-api.yaml`](../../specification/healthstore-api.yaml).
 
 ## Differences from the framework spec
 
@@ -20,7 +24,7 @@ The framework spec describes the target service. This is an interim integration 
 
 ## 1. Get an access token
 
-Export the values we sent you as the environment variables `CLIENT_ID`, `CLIENT_SECRET`, `TOKEN_URL` and `API_BASE_URL`, then request a token:
+Request a token:
 
 ```sh
 curl --silent \
