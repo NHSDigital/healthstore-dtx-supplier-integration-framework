@@ -59,7 +59,7 @@ to 256 printable ASCII characters is returned unchanged.
 | Environment | Base address | Token endpoint |
 |---|---|---|
 | Integration | `https://<host>/dtx-usage/v1`, host given at onboarding with your credentials | Given at onboarding (interim: AWS Cognito) |
-| Production | Under NHS England API Management; to follow as a versioned change | NHS England API Management |
+| Production | Not yet available | Not yet available |
 
 There is no sandpit for this API: the integration environment is the first
 one you connect to. It accepts synthetic data only: NHS numbers in the
@@ -75,10 +75,10 @@ until pseudonymisation completes and never enter analytics storage.
   Its first section says what we need from you before onboarding.
 - [How to read an answer](reading-answers.md): the three answer shapes and
   the fields to read.
-- The specification: [`specification/usage-api.yaml`](../../specification/usage-api.yaml).
-  The code systems it uses are in `specification/fhir/`:
-  [issue codes](../../specification/fhir/CodeSystem-usage-report-issue.json),
-  [status codes](../../specification/fhir/CodeSystem-usage-report-status.json).
+- The specification: [`specification/usage-api/usage-api.yaml`](../../specification/usage-api/usage-api.yaml).
+  The code systems it uses are beside it in `specification/usage-api/fhir/`:
+  [issue codes](../../specification/usage-api/fhir/CodeSystem-usage-report-issue.json),
+  [status codes](../../specification/usage-api/fhir/CodeSystem-usage-report-status.json).
 
 ## Status
 

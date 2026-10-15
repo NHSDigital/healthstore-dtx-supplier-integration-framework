@@ -1,6 +1,6 @@
 'use strict';
 
-// Every request here goes to a Prism mock of specification/usage-api.yaml,
+// Every request here goes to a Prism mock of specification/usage-api/usage-api.yaml,
 // started by tests/setup/global-setup.js on port 4014. Prism validates each
 // request against the spec and answers with the spec's own examples, so these
 // tests prove that the examples conform to their schemas and that the request

@@ -1,9 +1,8 @@
 # Contract-validation tests
 
 Runs a [Prism](https://github.com/stoplightio/prism) mock of each
-specification, `specification/healthstore-api.yaml` on port 4013 and
-`specification/usage-api.yaml` on port 4014, and calls them the way a
-supplier platform would.
+specification, the Registrations API on port 4013 and the Usage API on port
+4014, and calls them the way a supplier platform would.
 
 ```sh
 npm run test:integration
@@ -38,7 +37,7 @@ does. The mock is therefore the thing under test, and it proves two things:
 - `fhir/extract-examples.js`: writes every FHIR resource in the spec's
   examples to JSON files for the HL7 validator, run by the `fhir-validate`
   CI job against base R4, `fhir.r4.ukcore.stu2` 2.1.0 and the
-  StructureDefinitions in `specification/fhir/`.
+  StructureDefinitions in `specification/registrations-api/fhir/`.
 
 ## Choosing an example
 

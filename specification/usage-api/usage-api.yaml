@@ -313,15 +313,6 @@ paths:
         buy you something in return: an immediate per-line answer in the
         response. At current volumes a nightly extract fits in one or two
         chunks.
-
-        **Future direction — large-extract upload.** If your nightly extract
-        grows beyond ~50 chunks (~50,000 records), a presigned-upload flow is
-        the designed next step: you would request an upload URL, PUT the whole
-        extract to it with no practical size limit, and collect the per-line
-        answers afterwards from `GET /batches/{id}` instead of in the POST
-        response — validation feedback becomes eventually consistent rather
-        than immediate. This is designed but not built; raise it with the HSRS
-        team if your volumes are heading that way.
       requestBody:
         required: true
         content:

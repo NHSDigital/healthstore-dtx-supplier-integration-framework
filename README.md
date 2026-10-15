@@ -74,10 +74,12 @@ Usage API:
 
 ## The specification
 
-The OpenAPI document is `specification/healthstore-api.yaml`, assembled from
-`specification/components/` by reference. The FHIR StructureDefinitions the
-payload uses are in `specification/fhir/`. The Usage API's document is
-`specification/usage-api.yaml`; its CodeSystems are in `specification/fhir/` too.
+One directory per API under `specification/`, with no references between
+them. The Registrations API is `specification/registrations-api/healthstore-api.yaml`,
+assembled from its `components/` by reference, with the FHIR
+StructureDefinitions its payload uses in its `fhir/`. The Usage API is
+`specification/usage-api/usage-api.yaml`, one file, with its CodeSystems in
+its `fhir/`.
 
 ### Build against tags, not branches
 
@@ -88,7 +90,7 @@ it does not recognise.
 
 ## Validating the specification
 
-`specification/healthstore-api.yaml` and `specification/usage-api.yaml` are
+Both specifications are
 linted with [Spectral](https://github.com/stoplightio/spectral), configured in
 `.spectral.yaml`. Contract tests run the specification's examples through a
 [Prism](https://github.com/stoplightio/prism) mock, and the FHIR examples are

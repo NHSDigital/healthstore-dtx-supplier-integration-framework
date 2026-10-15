@@ -8,8 +8,8 @@ const path = require('path');
 
 const ROOT = path.resolve(__dirname, '../..');
 const PRISM = path.join(ROOT, 'node_modules/.bin/prism');
-const SPEC = path.join(ROOT, 'specification/healthstore-api.yaml');
-const USAGE_SPEC = path.join(ROOT, 'specification/usage-api.yaml');
+const SPEC = path.join(ROOT, 'specification/registrations-api/healthstore-api.yaml');
+const USAGE_SPEC = path.join(ROOT, 'specification/usage-api/usage-api.yaml');
 const PID_FILE = path.join(os.tmpdir(), 'integration-pids.json');
 
 // Prism mock of the Registrations API. Nothing implements the platform side

@@ -1,6 +1,6 @@
 # How to read an answer from the DTx Usage API
 
-*Sent with the [supplier guide](supplier-guide.md); the specification in this repository, `specification/usage-api.yaml`, has every field and code.*
+*Sent with the [supplier guide](supplier-guide.md); the specification in this repository, `specification/usage-api/usage-api.yaml`, has every field and code.*
 
 Every answer is FHIR JSON, as the HealthStore Registration API's are. There
 are three shapes. This page shows each one as it comes back and names the

@@ -1,6 +1,6 @@
 'use strict';
 
-// Every request here goes to a Prism mock of specification/healthstore-api.yaml.
+// Every request here goes to a Prism mock of specification/registrations-api/healthstore-api.yaml.
 // Prism validates the request against the spec and answers with the spec's
 // own examples, so these tests prove two things: that the examples conform
 // to the schemas they are declared under, and that the request shapes a

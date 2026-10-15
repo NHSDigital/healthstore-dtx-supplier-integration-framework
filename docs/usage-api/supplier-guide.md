@@ -59,7 +59,7 @@ Keep the secret out of source control. In your system, make the API base
 address and the token endpoint configuration: both change when the API moves
 behind NHS England API Management. Paths, bodies and codes do not.
 
-The specification in this repository, `specification/usage-api.yaml`, and the API docs page you were sent have the full field and code reference, and
+The specification in this repository, `specification/usage-api/usage-api.yaml`, and the API docs page you were sent have the full field and code reference, and
 [`reading-answers.md`](reading-answers.md), sent with this guide, shows each answer shape and the fields to read.
 
 ## 1. Get a token
@@ -348,12 +348,11 @@ Every refusal is an `OperationOutcome`, from the gateway and from the
 service alike. When you raise a problem with us, quote the `X-Request-ID`
 you sent; it comes back on every answer, so you can match the two.
 
-For `401`, `403` and `429`, act on the status code; the body's shape is the
-same but its text will change under API Management.
+For `401`, `403` and `429`, act on the status code, not on the body's text.
 
 ## Limits of the integration environment
 
 - One rate limit is shared by all suppliers. Agree load test times with us first.
 - Registration ids are not checked against real HealthStore registrations. Any value is accepted.
-- Platform names, codes and contracting organisation codes are placeholders and will change.
+- The intervention code and contracting organisation code on your page are placeholders until you send us yours.
 - You can read the status of your own submissions only.
