@@ -1,8 +1,9 @@
 # Contract-validation tests
 
-Runs a [Prism](https://github.com/stoplightio/prism) mock of
-`specification/healthstore-api.yaml` and calls it the way a supplier
-platform would.
+Runs a [Prism](https://github.com/stoplightio/prism) mock of each
+specification, `specification/healthstore-api.yaml` on port 4013 and
+`specification/usage-api.yaml` on port 4014, and calls them the way a
+supplier platform would.
 
 ```sh
 npm run test:integration
@@ -28,10 +29,12 @@ does. The mock is therefore the thing under test, and it proves two things:
 
 ## Directories
 
-- `contract-validation/healthstore-api.test.js`: the tests.
+- `contract-validation/healthstore-api.test.js`: the Registrations API tests.
+- `contract-validation/usage-api.test.js`: the Usage API tests, same
+  approach. The NDJSON batch POST is not mocked: Prism parses bodies as JSON.
 - `setup/global-setup.js`, `setup/global-teardown.js`: Jest's
   `globalSetup`/`globalTeardown` hooks, wired up in `jest.config.js`. Setup
-  starts `prism mock` on port 4013; teardown stops it.
+  starts the two `prism mock` processes; teardown stops them.
 - `fhir/extract-examples.js`: writes every FHIR resource in the spec's
   examples to JSON files for the HL7 validator, run by the `fhir-validate`
   CI job against base R4, `fhir.r4.ukcore.stu2` 2.1.0 and the

@@ -9,6 +9,7 @@ const path = require('path');
 const ROOT = path.resolve(__dirname, '../..');
 const PRISM = path.join(ROOT, 'node_modules/.bin/prism');
 const SPEC = path.join(ROOT, 'specification/healthstore-api.yaml');
+const USAGE_SPEC = path.join(ROOT, 'specification/usage-api.yaml');
 const PID_FILE = path.join(os.tmpdir(), 'integration-pids.json');
 
 // Prism mock of the Registrations API. Nothing implements the platform side
@@ -16,6 +17,7 @@ const PID_FILE = path.join(os.tmpdir(), 'integration-pids.json');
 // spec's examples and validates every request against the spec.
 const PORTS = {
   mock: 4013,
+  usageMock: 4014,
 };
 
 // Kill anything left over from a previous run that crashed before teardown ran.
@@ -71,7 +73,7 @@ module.exports = async function globalSetup() {
   killStaleProcesses();
   assertPortsFree(Object.values(PORTS));
 
-  process.stdout.write('\n=== Starting Prism mock ===\n');
+  process.stdout.write('\n=== Starting Prism mocks ===\n');
 
   const services = [
     {
@@ -82,6 +84,17 @@ module.exports = async function globalSetup() {
         'mock',
         SPEC,
         '--port', String(PORTS.mock),
+        '--host', '127.0.0.1',
+      ],
+    },
+    {
+      name: 'usage-mock',
+      port: PORTS.usageMock,
+      cmd: PRISM,
+      args: [
+        'mock',
+        USAGE_SPEC,
+        '--port', String(PORTS.usageMock),
         '--host', '127.0.0.1',
       ],
     },
