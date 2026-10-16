@@ -29,8 +29,9 @@ only in registrations.
 
 1. A clinician requests a DTx for a patient in the request tool. Single patient
    or bulk list; bulk stays on the HealthStore side.
-2. The patient is invited via NHS App message or SMS. Nothing is sent to the
-   platform at this point. The patient sees a button for your app on the HealthStore page
+2. The patient is invited via NHS App message or SMS. The invitation links to
+   your product's page in HealthStore, where the patient sees a button for your
+   app. Nothing is sent to the platform at this point.
 3. The patient taps to open your app and signs in with NHS login. Your platform's
    existing integration, unchanged.
 4. Your platform's backend calls NHS login `/userinfo` and receives the
