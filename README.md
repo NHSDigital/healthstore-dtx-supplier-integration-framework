@@ -11,7 +11,8 @@ definitions, the examples, the tests that prove them, and the documentation.
 ![v1.0 registration sequence](docs/registration-api/registration-sequence.png)
 
 1. A clinician requests a DTx for a patient in HealthStore. The patient is
-   invited by NHS App message or SMS, with a link to your app.
+   invited by NHS App message or SMS. The invitation links to your product's
+   page in HealthStore, which carries the link to your app.
 2. The patient opens your app and signs in with NHS login, as today.
 3. Your backend calls NHS login `/userinfo` for the patient's demographics,
    verified at source.

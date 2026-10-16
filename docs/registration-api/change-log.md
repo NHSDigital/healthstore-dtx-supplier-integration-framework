@@ -37,7 +37,7 @@ The remaining changes are programme mechanisms and data minimisation. Every fiel
 
 ## 1. How the patient reaches your product
 
-In private beta the patient reaches your product through a standard link. The invitation, an NHS App message or SMS, and your product's page in the NHS App carry an App Link / Universal Link. If your app is installed, it opens; if not, the link opens the app store. Either way your product opens with no context, and the patient signs in with NHS login: the journey your app supports today.
+In private beta the patient reaches your product through a standard link. The invitation, an NHS App message or SMS, links to your product's page in HealthStore. That page carries an App Link / Universal Link. If your app is installed, it opens; if not, the link opens the app store. Either way your product opens with no context, and the patient signs in with NHS login: the journey your app supports today.
 
 Private beta therefore does not depend on a seamless sign-on integration with the NHS App. There is no login assertion to handle, no session to bridge, and no joint integration testing against a moving national component. Seamless app-to-app sign-on is planned as a fast follow, introduced as a versioned change.
 
@@ -45,7 +45,7 @@ One consequence is worth stating plainly. Because the link carries no context an
 
 | # | Area | v0.1 draft | v1.0 baseline | Why | Origin |
 |---|---|---|---|---|---|
-| 18 | App launch | Seamless app-to-app sign-on from the NHS App into your product, with the NHS login session carried across | A standard App Link / Universal Link from the NHS App message and programme page. Your product opens with no context; the patient signs in with NHS login as today | Removes a national dependency from the private beta critical path. Nothing to build, test or support for beta; seamless sign-on is planned as a fast follow, as a versioned change | Programme |
+| 18 | App launch | Seamless app-to-app sign-on from the NHS App into your product, with the NHS login session carried across | The NHS App message links to your product's page in HealthStore, which carries a standard App Link / Universal Link. Your product opens with no context; the patient signs in with NHS login as today | Removes a national dependency from the private beta critical path. Nothing to build, test or support for beta; seamless sign-on is planned as a fast follow, as a versioned change | Programme |
 | 19 | Routes to the product | The NHS App journey was the only route to a registration | Any NHS login sign-in retrieves, so a patient with an open registration is registered even if they do not use the NHS App; for anyone else the retrieve returns an empty Bundle. Patients without NHS login: supported in principle, deferred to a later version, demand measured in private beta | A patient who cannot or will not use the NHS App should still be able to take up the DTx | Review comments (equality) |
 
 ## 2. Registration is synchronous, at sign-in
