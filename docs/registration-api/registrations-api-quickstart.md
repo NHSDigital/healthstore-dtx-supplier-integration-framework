@@ -51,13 +51,13 @@ Copy the `access_token` value. It expires after 10 minutes; repeat this step for
 
 In your product, you send the ID token NHS login gives you when the patient signs in, exactly as you received it. For now, you can make an unsigned token for one of these NHS login sandpit test users:
 
-| Test user | NHS number | What you get back |
-|---|---|---|
-| Mona | 9686368973 | 1 registration, with name, email and phone |
-| Iain | 9686368906 | 2 registrations, each from a different contracting organisation |
-| Emilie | 9658220142 | 1 registration, with no email or phone |
-| Lee | 9661033404 | 1 registration, with email but no phone |
-| Mina | 9658218989 | No registrations: an empty Bundle |
+| Test user | NHS number | Sandpit login email | What you get back |
+|---|---|---|---|
+| Mona | 9686368973 | `testuserlive@demo.signin.nhs.uk` | 1 registration, with name, email and phone |
+| Iain | 9686368906 | `testuserlive+1@demo.signin.nhs.uk` | 2 registrations, each from a different contracting organisation |
+| Emilie | 9658220142 | `testuserlive+11@demo.signin.nhs.uk` | 1 registration, with no email or phone |
+| Lee | 9661033404 | `testuserlive+17@demo.signin.nhs.uk` | 1 registration, with email but no phone |
+| Mina | 9658218989 | `testuserlive+6@demo.signin.nhs.uk` | No registrations: an empty Bundle |
 
 If you sign in to the NHS login sandpit as one of these users, you can send that real ID token instead and get the same result.
 
