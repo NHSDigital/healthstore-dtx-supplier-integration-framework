@@ -49,7 +49,9 @@ Copy the `access_token` value. It expires after 10 minutes; repeat this step for
 >
 > We will start checking ID tokens before go-live, and we will tell you before we do. After that, only a real NHS login ID token will work: signed by NHS login, unexpired, issued to your NHS login client, and at identity level P9. Do not build anything that relies on fake tokens.
 
-In your product, you send the ID token NHS login gives you when the patient signs in, exactly as you received it. For now, you can make an unsigned token for one of these NHS login sandpit test users:
+In your product, you send the ID token NHS login gives you when the patient signs in, exactly as you received it. For now, you can make an unsigned token for one of these NHS login sandpit test users.
+
+Your client is set up with two test interventions, a first and a second. Their codes are `<PRODUCT>` and `<PRODUCT>-second`.
 
 | Test user | NHS number | Sandpit login email | What you get back |
 |---|---|---|---|
@@ -57,6 +59,8 @@ In your product, you send the ID token NHS login gives you when the patient sign
 | Iain | 9686368906 | `testuserlive+1@demo.signin.nhs.uk` | 2 registrations, each from a different contracting organisation |
 | Emilie | 9658220142 | `testuserlive+11@demo.signin.nhs.uk` | 1 registration, with no email or phone |
 | Lee | 9661033404 | `testuserlive+17@demo.signin.nhs.uk` | 1 registration, with email but no phone |
+| Amanda | 9658220150 | `testuserlive+12@demo.signin.nhs.uk` | 2 registrations, one for each intervention |
+| Kevin | 9658218881 | `testuserlive+4@demo.signin.nhs.uk` | 1 registration, for the second intervention only |
 | Mina | 9658218989 | `testuserlive+6@demo.signin.nhs.uk` | No registrations: an empty Bundle |
 
 If you sign in to the NHS login sandpit as one of these users, you can send that real ID token instead and get the same result.
