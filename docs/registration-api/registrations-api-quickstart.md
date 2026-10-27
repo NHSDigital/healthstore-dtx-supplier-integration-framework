@@ -19,7 +19,7 @@ The framework spec describes the target service. This is an interim integration 
 
 - Use the API base URL above in place of the spec's `servers` URL. There is no `/registration/v1` prefix yet: the endpoint is `$API_BASE_URL/registrations`. A request to the wrong path gets a `403`.
 - Use the token URL above. The spec's `tokenUrl` is not yet authoritative.
-- Only retrieval works. `POST /registrations/{registration-id}/tasks` is not available yet.
+- Tasks for the synthetic registrations are checked but not recorded (see step 4).
 - ID tokens are not checked yet (see step 2), so you will not get `TOKEN_EXPIRED`, `WRONG_AUDIENCE` or `PROOFING_BELOW_P9`.
 
 ## 1. Get an access token
@@ -88,12 +88,29 @@ curl --silent --include \
 
 Expected result for Mona: HTTP 200 and a search Bundle with one registration, as in the [example response](#example-response) at the end of this doc.
 
+## 4. Acknowledge a registration
+
+Replace `<REGISTRATION_ID>` with the `identifier` value of a registration from step 3, and use a new `X-Request-ID`. The spec has a Task example for each outcome.
+
+```sh
+curl --silent --include \
+  --header 'Authorization: Bearer <ACCESS_TOKEN>' \
+  --header 'X-Request-ID: 8d4e2a7c-1b3f-4c5d-9e6a-7f8b9c0d1e2f' \
+  --header 'Content-Type: application/fhir+json' \
+  --data '{"resourceType":"Task","status":"accepted","intent":"order","businessStatus":{"coding":[{"system":"https://fhir.dtx.national.nhs.uk/CodeSystem/registration-business-status","code":"registered"}]}}' \
+  "$API_BASE_URL/registrations/<REGISTRATION_ID>/tasks"
+```
+
+Expected result: HTTP 200 with no body.
+
+> ⚠️ We check the Task and return errors as the spec describes, but we don't record it yet. The registration will still come back from step 3.
+
 ## Notes
 
 - An empty Bundle is a normal result, not an error.
 - The intervention in `ServiceRequest.code` is a placeholder for now: version `placeholder`, display `<PRODUCT> INTERVENTION NOT YET IMPLEMENTED`. We will replace it with your real intervention codes and tell you when we do. Do not map or store this value.
 - This is a good time to test getting demographics from NHS login `/userinfo` if you are not doing so already. Building logic now that uses `/userinfo` as the primary source and the contained patient as a secondary fallback means no code changes will be needed when NHS login grants further scopes. We plan to cut the contained patient down to gender only. Until then it also carries name, email and phone.
-- Repeated `GET /registrations` calls will return the same registrations for the same patient until acknowledged via the Lifecycle Tasks endpoint (not yet implemented).
+- In the target service, `GET /registrations` returns a registration until it is acknowledged. Here, synthetic registrations are always returned (see step 4).
 
 ## Errors
 
@@ -102,8 +119,10 @@ Errors are FHIR `OperationOutcome`s. Each issue has an error code in `details.co
 | HTTP | Code | Meaning |
 |---|---|---|
 | 401 | `NO_ACCESS` | Your access token is missing, expired or wrong (get a new one), or your client is not set up for this API (contact us) |
-| 400 | `MISSING_HEADER` | `X-Request-ID` or `NHSD-ID-Token` is missing |
-| 400 | `INVALID_VALUE` | A header is wrong, for example `X-Request-ID` is not a UUID or `NHSD-ID-Token` was sent twice |
+| 400 | `MISSING_HEADER` | `X-Request-ID`, `NHSD-ID-Token` or (step 4) `Content-Type` is missing |
+| 400 | `INVALID_VALUE` | A header or Task value is wrong, for example `X-Request-ID` is not a UUID or `NHSD-ID-Token` was sent twice |
+| 400 | `INVALID_FHIR_STRUCTURE`, `MISSING_VALUE`, `INVALID_CODE` | The Task is malformed. The issue's `expression` names the element |
+| 404 | `REFERENCE_NOT_FOUND` | The registration ID is not one of yours |
 | 401 | `TOKEN_INVALID` | The ID token is not a valid JWT, or its NHS number is not valid |
 | 401 | `NHS_NUMBER_MISSING` | The ID token has no `nhs_number` claim |
 | 429 | `TOO_MANY_REQUESTS` | Wait for the number of seconds in `Retry-After`, then retry |
@@ -111,7 +130,7 @@ Errors are FHIR `OperationOutcome`s. Each issue has an error code in `details.co
 
 ## Or run the script
 
-`try-registrations-api.sh` does all three steps for the NHS number you give it. Use one from the table in step 2. It reads the same environment variables as step 1, and exits with a non-zero status if either request fails.
+`try-registrations-api.sh` does all four steps for the NHS number you give it, acknowledging the first registration as registered. Use one from the table in step 2. It reads the same environment variables as step 1, and exits with a non-zero status if any request fails.
 
 ```sh
 sh try-registrations-api.sh '<NHS_NUMBER>'
