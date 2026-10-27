@@ -50,21 +50,46 @@ fi
 # A fake ID token, accepted only until we start checking ID tokens.
 id_token="$(encode_base64url '{"alg":"none","typ":"JWT"}').$(encode_base64url "{\"nhs_number\":\"$NHS_NUMBER\"}").unsigned"
 
+report_response() {
+  request_id=$1
+  http_status=$(head -1 "$response_headers" | cut -d' ' -f2)
+  echo "HTTP:             $http_status"
+  echo "Time:             $(print_response_header date)"
+  echo "X-Request-ID:     $request_id"
+  echo "x-amzn-requestid: $(print_response_header x-amzn-requestid)"
+  case $http_status in
+    2??) ;;
+    *) exit 1 ;;
+  esac
+}
+
+registrations=$(curl --silent \
+  --dump-header "$response_headers" \
+  --header "Authorization: Bearer $access_token" \
+  --header "X-Request-ID: $REQUEST_ID" \
+  --header "NHSD-ID-Token: $id_token" \
+  "$API_URL")
+echo "$registrations"
+report_response "$REQUEST_ID"
+
+registration_id=$(printf '%s' "$registrations" \
+  | grep -o '"https://fhir.dtx.national.nhs.uk/Id/registration","value":"[^"]*"' \
+  | head -1 | cut -d'"' -f6)
+if [ -z "$registration_id" ]; then
+  echo "No registrations to acknowledge"
+  exit 0
+fi
+
+# Checked but not recorded yet, so this registration is still returned next time.
+TASK_REQUEST_ID=$(uuidgen)
+echo
+echo "Acknowledging $registration_id as registered"
 curl --silent \
   --dump-header "$response_headers" \
   --write-out '\n' \
   --header "Authorization: Bearer $access_token" \
-  --header "X-Request-ID: $REQUEST_ID" \
-  --header "NHSD-ID-Token: $id_token" \
-  "$API_URL"
-
-http_status=$(head -1 "$response_headers" | cut -d' ' -f2)
-echo "HTTP:             $http_status"
-echo "Time:             $(print_response_header date)"
-echo "X-Request-ID:     $REQUEST_ID"
-echo "x-amzn-requestid: $(print_response_header x-amzn-requestid)"
-
-case $http_status in
-  2??) ;;
-  *) exit 1 ;;
-esac
+  --header "X-Request-ID: $TASK_REQUEST_ID" \
+  --header 'Content-Type: application/fhir+json' \
+  --data '{"resourceType":"Task","status":"accepted","intent":"order","businessStatus":{"coding":[{"system":"https://fhir.dtx.national.nhs.uk/CodeSystem/registration-business-status","code":"registered"}]}}' \
+  "$API_URL/$registration_id/tasks"
+report_response "$TASK_REQUEST_ID"
