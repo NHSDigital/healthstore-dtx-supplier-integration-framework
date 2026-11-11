@@ -52,6 +52,12 @@ given name, email and phone. Everything else about the patient comes from
 your own NHS login `/userinfo` call.
 [How and why this changed from the draft](docs/registration-api/change-log.md#3-what-a-registration-carries)
 
+## The Usage API
+
+Once a patient is registered, your platform reports their usage to the
+HealthStore Reporting Service with the DTx Usage API, under the same OAuth2
+client credentials pattern. Start with the [overview](docs/usage-api/overview.md).
+
 ## Documents
 
 - [Design overview](docs/registration-api/overview.md): the model, flow, and rationale
@@ -61,11 +67,20 @@ your own NHS login `/userinfo` call.
 - [Lifecycle](docs/registration-api/lifecycle.md): fast follow as a versioned change
 - [v0.1 open questions](docs/registration-api/open-questions-and-decisions.md): superseded by the [change log](docs/registration-api/change-log.md), kept for the record
 
+Usage API:
+
+- [Overview](docs/usage-api/overview.md): what a usage report is, the calls, authentication, environments
+- [Supplier guide](docs/usage-api/supplier-guide.md): from credentials to an accepted report, and the test sequence
+- [How to read an answer](docs/usage-api/reading-answers.md): the three answer shapes
+
 ## The specification
 
-The OpenAPI document is `specification/healthstore-api.yaml`, assembled from
-`specification/components/` by reference. The FHIR StructureDefinitions the
-payload uses are in `specification/fhir/`.
+One directory per API under `specification/`, with no references between
+them. The Registrations API is `specification/registrations-api/healthstore-api.yaml`,
+assembled from its `components/` by reference, with the FHIR
+StructureDefinitions its payload uses in its `fhir/`. The Usage API is
+`specification/usage-api/usage-api.yaml`, one file, with its CodeSystems in
+its `fhir/`.
 
 ### Build against tags, not branches
 
@@ -76,7 +91,7 @@ it does not recognise.
 
 ## Validating the specification
 
-`specification/healthstore-api.yaml` is
+Both specifications are
 linted with [Spectral](https://github.com/stoplightio/spectral), configured in
 `.spectral.yaml`. Contract tests run the specification's examples through a
 [Prism](https://github.com/stoplightio/prism) mock, and the FHIR examples are

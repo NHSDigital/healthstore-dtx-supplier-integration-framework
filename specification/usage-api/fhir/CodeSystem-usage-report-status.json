@@ -1,0 +1,22 @@
+{
+  "resourceType": "CodeSystem",
+  "id": "usage-report-status",
+  "url": "https://fhir.dtx.national.nhs.uk/CodeSystem/usage-report-status",
+  "name": "UsageReportStatus",
+  "title": "DTx Usage API: where a submission is",
+  "status": "draft",
+  "experimental": true,
+  "publisher": "HealthStore Reporting Service",
+  "description": "The exact status of a submission, carried in Task.statusReason.coding on the Task the API answers with. Task.status carries FHIR's nearest reading of it (received, on-hold, accepted, rejected, completed). The authoritative list is packages/contract/src/reason-codes.ts.",
+  "caseSensitive": true,
+  "content": "complete",
+  "concept": [
+    { "code": "received", "display": "Stored, not yet judged" },
+    { "code": "accepted", "display": "Merged into the record's current state" },
+    { "code": "rejected", "display": "Recorded in history with reasons; never changed state" },
+    { "code": "duplicate", "display": "Identical content already recorded; state unchanged" },
+    { "code": "pending_merge", "display": "Self-referral; waiting for the pseudonym" },
+    { "code": "parked", "display": "Waiting for the registration to be known" },
+    { "code": "superseded", "display": "Replaced by an accepted correction" }
+  ]
+}

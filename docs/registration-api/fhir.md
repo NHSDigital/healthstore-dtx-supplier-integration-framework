@@ -99,7 +99,7 @@ as described in Section 1, above.
 
 > ⚠️ **This ServiceRequest cannot be used to identify the patient.**
 >
-> As required by the [retrieve operation](../../specification/components/endpoints/getRegistrations.yaml) in the OpenAPI specification, the fetch from the Registrations API must happen immediately after
+> As required by the [retrieve operation](../../specification/registrations-api/components/endpoints/getRegistrations.yaml) in the OpenAPI specification, the fetch from the Registrations API must happen immediately after
 > the fetch from NHS login /userinfo, with both operations running synchronously in the same process.
 > **The patient must be identified using the NHS Number from the preceding /userinfo response.**
 >
@@ -404,7 +404,7 @@ The contracting organisation extension is identified by its canonical url,
 `https://fhir.dtx.national.nhs.uk/StructureDefinition/Extension-ContractingOrganisation`.
 That url is the definition of the extension, not a `system`; the `system` on
 its `valueIdentifier` is the ODS row above. The StructureDefinition is in
-[`specification/fhir/`](../../specification/fhir/StructureDefinition-Extension-ContractingOrganisation.json).
+[`specification/registrations-api/fhir/`](../../specification/registrations-api/fhir/StructureDefinition-Extension-ContractingOrganisation.json).
 
 ### 4.1 Identifier values
 

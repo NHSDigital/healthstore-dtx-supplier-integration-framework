@@ -1,0 +1,1527 @@
+# DTx Usage API: OpenAPI 3.0.3. Implemented by the HealthStore Reporting
+# Service (HSRS), called by DTx platforms. Generated from the service's own
+# repository, where the executable profile this document mirrors lives.
+# This document is the contract.
+openapi: 3.0.3
+info:
+  title: DTx Usage API
+  version: 1.0.0
+  description: |
+    The usage-reporting API of HealthStore, implemented by the HealthStore
+    Reporting Service (HSRS) and called by DTx platforms, carrying **MDS v0.1**
+    usage reports.
+
+    **Semantics.** A supplier submission is a *usage report*: an assertion about
+    a patient's usage record as at `record_timestamp`, which may be complete or
+    partial (delta). **`202` means stage-1 accepted** — synchronous structural,
+    identifier, basis and clock checks passed and the submission is durably
+    stored. Stage-2 outcomes (business rules against current record state) are
+    asynchronous, usually within seconds, and surface via
+    `GET /submissions/{id}`. **`400` means stage-1 rejected: the payload was not
+    persisted anywhere** and must be corrected and resubmitted.
+
+    **Answers are FHIR**, `application/fhir+json`, as the HealthStore
+    Registration API answers. A refusal, whoever refuses it, is an
+    `OperationOutcome`. An accepted report is answered with the Task it was
+    sent as, carrying our id and its status. A batch is answered with a
+    `batch-response` Bundle, one entry per line.
+
+    **Headers.** `X-Request-ID` is required on every call: a UUID of yours for
+    the request, the same on a retry, mirrored back on every answer and the
+    thing to quote to us. `X-Correlation-ID` is optional and returned
+    unchanged when it is 1 to 256 printable ASCII characters; otherwise it is
+    ignored.
+
+    **A record does not exist in this API until activation** (MDS v0.1: "the
+    record begins at activation"). The first submission for a record key must be
+    the full record with `activation_datetime` set; subsequent submissions may
+    carry any subset of fields. Batch extracts must exclude
+    registered-but-not-activated patients. The monthly freshness floor is
+    satisfied by a minimal heartbeat: `latest_therapeutic_activity_datetime` +
+    `user_account_status`.
+
+    Submissions are FHIR R4-shaped (`Bundle`/`Patient`/`Task`, UK Core
+    profiles reused) but validated by a strict closed-world profile: **unknown
+    elements are rejected**, `id`, `meta` and `fullUrl` included. Content type
+    `application/fhir+json` is accepted, `application/json` tolerated.
+
+    Identifiers (NHS number, DoB) are held transiently for pseudonymisation
+    only, deleted on completion (typically 24–72 h, enforced 7-day ceiling), and
+    never enter analytics storage. Non-production environments accept only
+    synthetic NHS numbers: the 999 test range, or test patients listed for
+    the calling supplier.
+  contact:
+    name: HSRS — HealthStore Reporting Service
+    url: https://github.com/NHSDigital/healthstore-dtx-supplier-integration-framework
+servers:
+  - url: https://{host}/dtx-usage/v1
+    description: One host per environment, given at onboarding with your credentials.
+    variables:
+      host:
+        default: host-given-at-onboarding
+        description: The environment's API host, given at onboarding.
+security:
+  - SupplierOAuth: []
+tags:
+  - name: Reference
+    description: The eligibility reference, your products and their contracting organisations
+  - name: Status
+    description: Asynchronous stage-2 outcomes
+  - name: Usage reports
+    description: Supplier submissions (MDS v0.1 records)
+paths:
+  /usage-reports:
+    post:
+      tags:
+        - Usage reports
+      summary: Submit one usage report
+      operationId: submitUsageReport
+      description: One report, a Bundle with one Patient and one Task. Answered 202 with the Task carrying our id once the first checks pass and the report is stored; 400 with an OperationOutcome when it does not, in which case nothing is stored.
+      parameters:
+        - $ref: "#/components/parameters/XRequestID"
+        - $ref: "#/components/parameters/XCorrelationID"
+      requestBody:
+        required: true
+        description: "Every submission — whether it is the first full record or a small update — must identify the record it belongs to: the patient (NHS number and date of birth), the intervention (your product, as a coding in your platform's code system), and either the registration id (clinician-initiated) or the Self-Referral route marker. The always-required fields (the intervention's version, registration route, account status, contracting organisation) also appear on every submission. So an update is \"minimal\" only in its OUTPUT dates — the envelope is always complete. This is deliberate: because identifiers arrive with every submission, a record whose pseudonymisation was ever interrupted repairs itself the next time you report on it, and the date of birth lets the pseudonymisation service verify it has matched the right patient."
+        content:
+          application/fhir+json:
+            schema:
+              $ref: "#/components/schemas/UsageReportBundle"
+            examples:
+              full-first-submission:
+                summary: First (full) submission — a record does not exist until you report its activation
+                value:
+                  resourceType: Bundle
+                  type: collection
+                  entry:
+                    - resource:
+                        resourceType: Patient
+                        identifier:
+                          - system: https://fhir.nhs.uk/Id/nhs-number
+                            value: "9990000018"
+                        birthDate: 1958-03-14
+                    - resource:
+                        resourceType: Task
+                        status: in-progress
+                        intent: order
+                        basedOn:
+                          - identifier:
+                              system: https://fhir.dtx.national.nhs.uk/Id/registration
+                              value: 0b93b9a2-6ac2-4d31-a3d0-7c3ef1a29a3f
+                        requester:
+                          identifier:
+                            system: https://fhir.nhs.uk/Id/ods-organization-code
+                            value: QHS1
+                        businessStatus:
+                          text: Open
+                        lastModified: 2026-08-20T10:15:00Z
+                        input:
+                          - type:
+                              text: intervention
+                            valueCodeableConcept:
+                              coding:
+                                - system: https://fhir.dtx.national.nhs.uk/CodeSystem/intervention-example
+                                  code: example
+                                  version: 2.3.1
+                          - type:
+                              text: registration_route
+                            valueString: HealthStore
+                          - type:
+                              text: completion_applicable
+                            valueBoolean: false
+                        output:
+                          - type:
+                              text: activation_datetime
+                            valueDateTime: 2026-08-20T09:58:00Z
+              fire-and-forget-delta:
+                summary: Fire-and-forget delta — therapy started (new outputs only)
+                value:
+                  resourceType: Bundle
+                  type: collection
+                  entry:
+                    - resource:
+                        resourceType: Patient
+                        identifier:
+                          - system: https://fhir.nhs.uk/Id/nhs-number
+                            value: "9990000018"
+                        birthDate: 1958-03-14
+                    - resource:
+                        resourceType: Task
+                        status: in-progress
+                        intent: order
+                        basedOn:
+                          - identifier:
+                              system: https://fhir.dtx.national.nhs.uk/Id/registration
+                              value: 0b93b9a2-6ac2-4d31-a3d0-7c3ef1a29a3f
+                        requester:
+                          identifier:
+                            system: https://fhir.nhs.uk/Id/ods-organization-code
+                            value: QHS1
+                        businessStatus:
+                          text: Open
+                        lastModified: 2026-08-23T07:31:00Z
+                        input:
+                          - type:
+                              text: intervention
+                            valueCodeableConcept:
+                              coding:
+                                - system: https://fhir.dtx.national.nhs.uk/CodeSystem/intervention-example
+                                  code: example
+                                  version: 2.3.1
+                          - type:
+                              text: registration_route
+                            valueString: HealthStore
+                        output:
+                          - type:
+                              text: first_therapeutic_activity_datetime
+                            valueDateTime: 2026-08-23T07:12:00Z
+                          - type:
+                              text: latest_therapeutic_activity_datetime
+                            valueDateTime: 2026-08-23T07:12:00Z
+              monthly-heartbeat:
+                summary: Monthly heartbeat — re-confirmation; record_timestamp is the news
+                value:
+                  resourceType: Bundle
+                  type: collection
+                  entry:
+                    - resource:
+                        resourceType: Patient
+                        identifier:
+                          - system: https://fhir.nhs.uk/Id/nhs-number
+                            value: "9990000018"
+                        birthDate: 1958-03-14
+                    - resource:
+                        resourceType: Task
+                        status: in-progress
+                        intent: order
+                        basedOn:
+                          - identifier:
+                              system: https://fhir.dtx.national.nhs.uk/Id/registration
+                              value: 0b93b9a2-6ac2-4d31-a3d0-7c3ef1a29a3f
+                        requester:
+                          identifier:
+                            system: https://fhir.nhs.uk/Id/ods-organization-code
+                            value: QHS1
+                        businessStatus:
+                          text: Open
+                        lastModified: 2026-09-14T22:05:00Z
+                        input:
+                          - type:
+                              text: intervention
+                            valueCodeableConcept:
+                              coding:
+                                - system: https://fhir.dtx.national.nhs.uk/CodeSystem/intervention-example
+                                  code: example
+                                  version: 2.3.1
+                          - type:
+                              text: registration_route
+                            valueString: HealthStore
+                        output:
+                          - type:
+                              text: latest_therapeutic_activity_datetime
+                            valueDateTime: 2026-09-14T21:40:00Z
+              correction:
+                summary: Correction — restates history and may change otherwise-locked fields
+                value:
+                  resourceType: Bundle
+                  type: collection
+                  entry:
+                    - resource:
+                        resourceType: Patient
+                        identifier:
+                          - system: https://fhir.nhs.uk/Id/nhs-number
+                            value: "9990000018"
+                        birthDate: 1958-03-14
+                    - resource:
+                        resourceType: Task
+                        status: in-progress
+                        intent: order
+                        basedOn:
+                          - identifier:
+                              system: https://fhir.dtx.national.nhs.uk/Id/registration
+                              value: 0b93b9a2-6ac2-4d31-a3d0-7c3ef1a29a3f
+                        requester:
+                          identifier:
+                            system: https://fhir.nhs.uk/Id/ods-organization-code
+                            value: QHS1
+                        businessStatus:
+                          text: Open
+                        lastModified: 2026-08-20T10:15:00Z
+                        input:
+                          - type:
+                              text: intervention
+                            valueCodeableConcept:
+                              coding:
+                                - system: https://fhir.dtx.national.nhs.uk/CodeSystem/intervention-example
+                                  code: example
+                                  version: 2.3.1
+                          - type:
+                              text: registration_route
+                            valueString: HealthStore
+                          - type:
+                              text: correction
+                            valueBoolean: true
+                          - type:
+                              text: corrects_submission_id
+                            valueString: 7f3c9a1e-5b2d-4c8e-9f10-6a7b8c9d0e1f
+                        output:
+                          - type:
+                              text: activation_datetime
+                            valueDateTime: 2026-08-20T08:30:00Z
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UsageReportBundle"
+      responses:
+        "202":
+          description: Stage-1 accepted and stored. The answer is your Task as we hold it, with our id and status `received`; the stage-2 outcome follows via `GET /submissions/{id}`.
+          headers:
+            X-Request-ID:
+              $ref: "#/components/headers/XRequestID"
+            X-Correlation-ID:
+              $ref: "#/components/headers/XCorrelationID"
+          content:
+            application/fhir+json:
+              schema:
+                $ref: "#/components/schemas/SubmissionTask"
+        "400":
+          $ref: "#/components/responses/Refused"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "429":
+          $ref: "#/components/responses/Throttled"
+  /usage-reports/batch:
+    post:
+      tags:
+        - Usage reports
+      summary: Submit a batch full extract (NDJSON)
+      operationId: submitUsageReportBatch
+      parameters:
+        - $ref: "#/components/parameters/XRequestID"
+        - $ref: "#/components/parameters/XCorrelationID"
+      description: |
+        Newline-delimited JSON: one `UsageReportBundle` per line — **full
+        extracts** (batch suppliers), which also serve as monthly
+        re-confirmation. Transport cap: **1,000 records or 4 MB per POST,
+        whichever is lower**; chunk larger extracts across sequential POSTs.
+        One malformed line rejects that line, not the batch. Re-sent unchanged
+        records are absorbed by content-hash dedupe (recorded as `duplicate`,
+        state unchanged), so "resend the whole chunk" is always a safe retry.
+
+        The caps come from the platform's synchronous request limits, and they
+        buy you something in return: an immediate per-line answer in the
+        response. At current volumes a nightly extract fits in one or two
+        chunks.
+      requestBody:
+        required: true
+        content:
+          application/fhir+json:
+            schema:
+              type: string
+              format: ndjson
+              description: One UsageReportBundle JSON object per line (see the UsageReportBundle schema for each line's structure — the body is a string only because NDJSON is not JSON).
+            example: |
+              {"resourceType":"Bundle","type":"collection","entry":[{"resource":{"resourceType":"Patient","identifier":[{"system":"https://fhir.nhs.uk/Id/nhs-number","value":"9990000018"}],"birthDate":"1958-03-14"}},{"resource":{"resourceType":"Task","basedOn":[{"identifier":{"system":"https://fhir.dtx.national.nhs.uk/Id/registration","value":"0b93b9a2-6ac2-4d31-a3d0-7c3ef1a29a3f"}}],"requester":{"identifier":{"system":"https://fhir.nhs.uk/Id/ods-organization-code","value":"QHS1"}},"businessStatus":{"text":"Open"},"lastModified":"2026-08-20T04:12:00Z","input":[{"type":{"text":"intervention"},"valueCodeableConcept":{"coding":[{"system":"https://fhir.dtx.national.nhs.uk/CodeSystem/intervention-example","code":"example","version":"5.0.2"}]}},{"type":{"text":"registration_route"},"valueString":"HealthStore"},{"type":{"text":"completion_applicable"},"valueBoolean":true}],"output":[{"type":{"text":"activation_datetime"},"valueDateTime":"2026-08-19T14:02:00Z"},{"type":{"text":"latest_therapeutic_activity_datetime"},"valueDateTime":"2026-08-20T03:55:00Z"}]}}]}
+              {"resourceType":"Bundle","type":"collection","entry":[{"resource":{"resourceType":"Patient","identifier":[{"system":"https://fhir.nhs.uk/Id/nhs-number","value":"9990000026"}],"birthDate":"1961-07-02"}},{"resource":{"resourceType":"Task","basedOn":[{"identifier":{"system":"https://fhir.dtx.national.nhs.uk/Id/registration","value":"7d2f0c4e-9a1b-4c3d-8e5f-6a7b8c9d0e1f"}}],"requester":{"identifier":{"system":"https://fhir.nhs.uk/Id/ods-organization-code","value":"QHS2"}},"businessStatus":{"text":"Open"},"lastModified":"2026-08-20T04:12:00Z","input":[{"type":{"text":"intervention"},"valueCodeableConcept":{"coding":[{"system":"https://fhir.dtx.national.nhs.uk/CodeSystem/intervention-example","code":"example","version":"5.0.2"}]}},{"type":{"text":"registration_route"},"valueString":"HealthStore"},{"type":{"text":"completion_applicable"},"valueBoolean":true}],"output":[{"type":{"text":"activation_datetime"},"valueDateTime":"2026-07-30T09:20:00Z"},{"type":{"text":"first_therapeutic_activity_datetime"},"valueDateTime":"2026-07-31T18:00:00Z"},{"type":{"text":"latest_therapeutic_activity_datetime"},"valueDateTime":"2026-08-20T03:58:00Z"}]}}]}
+      responses:
+        "200":
+          description: "A `batch-response` Bundle whose `id` is the batch id: one entry per line, in line order. An accepted line's entry carries `response.status` `202 Accepted` and its Task; a refused line's carries `400 Bad Request` and its `OperationOutcome`. Stage-2 outcomes follow via `GET /batches/{id}`."
+          headers:
+            X-Request-ID:
+              $ref: "#/components/headers/XRequestID"
+            X-Correlation-ID:
+              $ref: "#/components/headers/XCorrelationID"
+          content:
+            application/fhir+json:
+              schema:
+                $ref: "#/components/schemas/BatchResponseBundle"
+        "400":
+          description: Empty batch, no records, or a missing or malformed `X-Request-ID`.
+          headers:
+            X-Request-ID:
+              $ref: "#/components/headers/XRequestID"
+          content:
+            application/fhir+json:
+              schema:
+                $ref: "#/components/schemas/OperationOutcome"
+              example:
+                resourceType: OperationOutcome
+                issue:
+                  - severity: error
+                    code: structure
+                    details:
+                      coding:
+                        - system: https://fhir.dtx.national.nhs.uk/CodeSystem/usage-report-issue
+                          code: MALFORMED_BUNDLE
+                    diagnostics: batch contains no records
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "413":
+          description: Over the transport cap of 1,000 records or 4 MB per POST (`BATCH_TOO_LARGE`).
+          headers:
+            X-Request-ID:
+              $ref: "#/components/headers/XRequestID"
+          content:
+            application/fhir+json:
+              schema:
+                $ref: "#/components/schemas/OperationOutcome"
+              example:
+                resourceType: OperationOutcome
+                issue:
+                  - severity: error
+                    code: too-long
+                    details:
+                      coding:
+                        - system: https://fhir.dtx.national.nhs.uk/CodeSystem/usage-report-issue
+                          code: BATCH_TOO_LARGE
+                    diagnostics: batch has 1,204 records; max 1,000 per POST — chunk larger extracts across sequential POSTs
+        "429":
+          $ref: "#/components/responses/Throttled"
+  /submissions/{id}:
+    get:
+      tags:
+        - Status
+      summary: The submission's Task, with its stage-2 outcome
+      operationId: getSubmission
+      description: The report as you sent it, with its current status and, once judged, the reasons. Your own submissions only; another supplier's id and an unknown id both answer 404.
+      parameters:
+        - $ref: "#/components/parameters/XRequestID"
+        - $ref: "#/components/parameters/XCorrelationID"
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+          description: The `Task.id` returned by a `202` to you. A submission made with another supplier's credentials is answered `404`, exactly as an id that does not exist.
+      responses:
+        "200":
+          description: The Task as it stands. `Task.status` is FHIR's reading (`received`, `on-hold`, `accepted`, `rejected`, `completed`); the exact status is `Task.statusReason.coding[0].code`. Where there are reasons, the Task contains an `OperationOutcome` with id `outcome`, referenced from `Task.output`.
+          headers:
+            X-Request-ID:
+              $ref: "#/components/headers/XRequestID"
+            X-Correlation-ID:
+              $ref: "#/components/headers/XCorrelationID"
+          content:
+            application/fhir+json:
+              schema:
+                $ref: "#/components/schemas/SubmissionTask"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          description: Unknown id (`REFERENCE_NOT_FOUND`). Stage-1 rejections are returned synchronously, are never persisted, and never receive a submission id.
+          content:
+            application/fhir+json:
+              schema:
+                $ref: "#/components/schemas/OperationOutcome"
+              example:
+                resourceType: OperationOutcome
+                issue:
+                  - severity: error
+                    code: not-found
+                    details:
+                      coding:
+                        - system: https://fhir.dtx.national.nhs.uk/CodeSystem/usage-report-issue
+                          code: REFERENCE_NOT_FOUND
+                    diagnostics: no submission with this id for these credentials
+  /batches/{id}:
+    get:
+      tags:
+        - Status
+      summary: The batch's submissions, each as its Task
+      operationId: getBatch
+      description: Every stored line of the batch, each as its Task with its current status. Lines refused in the POST were not stored and do not appear.
+      parameters:
+        - $ref: "#/components/parameters/XRequestID"
+        - $ref: "#/components/parameters/XCorrelationID"
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+          description: The `Bundle.id` returned by the batch POST.
+      responses:
+        "200":
+          description: A `collection` Bundle of the batch's stored submissions, one Task each, in receipt order.
+          headers:
+            X-Request-ID:
+              $ref: "#/components/headers/XRequestID"
+            X-Correlation-ID:
+              $ref: "#/components/headers/XCorrelationID"
+          content:
+            application/fhir+json:
+              schema:
+                $ref: "#/components/schemas/BatchStatusBundle"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          description: Unknown batch id, or a batch with none of your submissions (`REFERENCE_NOT_FOUND`).
+          content:
+            application/fhir+json:
+              schema:
+                $ref: "#/components/schemas/OperationOutcome"
+              example:
+                resourceType: OperationOutcome
+                issue:
+                  - severity: error
+                    code: not-found
+                    details:
+                      coding:
+                        - system: https://fhir.dtx.national.nhs.uk/CodeSystem/usage-report-issue
+                          code: REFERENCE_NOT_FOUND
+                    diagnostics: no batch with this id for these credentials
+  /eligibility-reference:
+    get:
+      tags:
+        - Reference
+      summary: Your products, how they are named on the wire, and their contracting organisations
+      operationId: getEligibilityReference
+      parameters:
+        - $ref: "#/components/parameters/XRequestID"
+        - $ref: "#/components/parameters/XCorrelationID"
+      description: "The lawful-basis gate for stage-1: a submission's (contracting organisation ODS code, product) must be an active pair at `record_timestamp`. You receive your own products and their organisations only, with the intervention code each product is reported under. Plain JSON: reference data, not a resource."
+      responses:
+        "200":
+          description: The versioned reference, limited to your own products.
+          headers:
+            X-Request-ID:
+              $ref: "#/components/headers/XRequestID"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EligibilityReference"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+components:
+  securitySchemes:
+    SupplierOAuth:
+      type: oauth2
+      description: |
+        OAuth 2.0 client credentials. HSRS issues one client id and secret per
+        supplier per environment. Exchange them at the token endpoint for an
+        access token, cache it until `expires_in`, and send it on every call
+        as `Authorization: Bearer <token>`.
+
+        Token request: `POST` to the token endpoint,
+        `Content-Type: application/x-www-form-urlencoded`, body
+        `grant_type=client_credentials&client_id=...&client_secret=...`
+        (client_secret_post). No `scope` parameter is needed. HTTP Basic
+        authentication with the same id and secret is also accepted.
+
+        This is the same pattern as the HealthStore Registration API. The
+        credentials and the token endpoint are different: they are ours, and
+        they are per environment. The `tokenUrl` below is representative; the
+        endpoint for your environment is given at onboarding.
+
+        When this API moves behind NHS England API Management the token
+        endpoint changes, and the client id and secret are replaced by a
+        signed JWT assertion. The API calls, the bearer header, token caching
+        and the handling of `401` stay the same.
+      flows:
+        clientCredentials:
+          tokenUrl: /oauth2/token
+          scopes: {}
+  parameters:
+    XRequestID:
+      name: X-Request-ID
+      in: header
+      required: true
+      schema:
+        type: string
+        format: uuid
+      description: "A UUID for this request, mirrored back in the response. A retry repeats the same value. Missing: `400` `MISSING_HEADER`; not a UUID: `400` `INVALID_HEADER`."
+    XCorrelationID:
+      name: X-Correlation-ID
+      in: header
+      required: false
+      schema:
+        type: string
+        maxLength: 256
+      description: Tracks a transaction across systems, returned unchanged when it is 1 to 256 printable ASCII characters and ignored otherwise. Need not be unique per call. A retry repeats the same value.
+  headers:
+    XRequestID:
+      schema:
+        type: string
+        format: uuid
+      description: The caller's `X-Request-ID`, mirrored.
+    XCorrelationID:
+      schema:
+        type: string
+      description: The caller's `X-Correlation-ID`, mirrored when it was sent.
+  responses:
+    Refused:
+      description: Stage-1 rejected — never persisted. One issue per thing wrong; fix in one round trip.
+      headers:
+        X-Request-ID:
+          $ref: "#/components/headers/XRequestID"
+        X-Correlation-ID:
+          $ref: "#/components/headers/XCorrelationID"
+      content:
+        application/fhir+json:
+          schema:
+            $ref: "#/components/schemas/OperationOutcome"
+    Unauthorized:
+      description: "No bearer token, or one that is invalid or expired (refused at the gateway, before any validation of the body): an `OperationOutcome` with `TOKEN_INVALID` or `TOKEN_EXPIRED`. Obtain a new access token and retry. Act on the status code; the body's text will change under API Management."
+      content:
+        application/fhir+json:
+          schema:
+            $ref: "#/components/schemas/OperationOutcome"
+    Forbidden:
+      description: "An `OperationOutcome` with `NO_ACCESS`: a token that may not call this API or this route. A path that does not exist is also answered `403`, by the gateway, with `INVALID_REQUEST`. Act on the status code."
+      content:
+        application/fhir+json:
+          schema:
+            $ref: "#/components/schemas/OperationOutcome"
+    Throttled:
+      description: Rate limit reached (`TOO_MANY_REQUESTS`). Wait and retry.
+      content:
+        application/fhir+json:
+          schema:
+            $ref: "#/components/schemas/OperationOutcome"
+  schemas:
+    OperationOutcome:
+      type: object
+      description: "Every refusal, from the gateway or the service: one `issue` per thing wrong. `issue.code` is FHIR's class of problem; `issue.details.coding` carries our code under `https://fhir.dtx.national.nhs.uk/CodeSystem/usage-report-issue`; `diagnostics` explains; `expression` names the element. The same shape, contained in a Task, carries a judged submission's reasons."
+      required:
+        - resourceType
+        - issue
+      properties:
+        resourceType:
+          type: string
+          enum:
+            - OperationOutcome
+        id:
+          type: string
+          description: Set (`outcome`) when contained in a Task.
+        issue:
+          type: array
+          minItems: 1
+          items:
+            $ref: "#/components/schemas/OperationOutcomeIssue"
+      example:
+        resourceType: OperationOutcome
+        issue:
+          - severity: error
+            code: value
+            details:
+              coding:
+                - system: https://fhir.dtx.national.nhs.uk/CodeSystem/usage-report-issue
+                  code: INVALID_NHS_NUMBER
+            diagnostics: NHS number must be 10 digits with a valid mod-11 check digit
+            expression:
+              - entry.Patient.identifier
+          - severity: error
+            code: invariant
+            details:
+              coding:
+                - system: https://fhir.dtx.national.nhs.uk/CodeSystem/usage-report-issue
+                  code: ROUTE_CONSISTENCY
+            diagnostics: registration_route 'HealthStore' requires healthstore_request_id (Task.basedOn)
+            expression:
+              - entry.Task.basedOn
+    OperationOutcomeIssue:
+      type: object
+      required:
+        - severity
+        - code
+        - details
+        - diagnostics
+      properties:
+        severity:
+          type: string
+          enum:
+            - fatal
+            - error
+            - warning
+            - information
+        code:
+          type: string
+          description: FHIR issue type (`structure`, `value`, `invariant`, `business-rule`, `forbidden`, `not-found`, `required`, `security`, `throttled`, ...).
+        details:
+          type: object
+          required:
+            - coding
+          properties:
+            coding:
+              type: array
+              minItems: 1
+              maxItems: 1
+              items:
+                type: object
+                required:
+                  - system
+                  - code
+                properties:
+                  system:
+                    type: string
+                    enum:
+                      - https://fhir.dtx.national.nhs.uk/CodeSystem/usage-report-issue
+                  code:
+                    description: One of Stage1ReasonCode, RequestIssueCode or Stage2ReasonCode.
+                    anyOf:
+                      - $ref: "#/components/schemas/Stage1ReasonCode"
+                      - $ref: "#/components/schemas/RequestIssueCode"
+                      - $ref: "#/components/schemas/Stage2ReasonCode"
+            text:
+              type: string
+              description: "On `FROZEN_RECORD`: the open registration, as `open registration <id>`."
+        diagnostics:
+          type: string
+        expression:
+          type: array
+          items:
+            type: string
+          description: Location within the payload, or the header name.
+    Stage1ReasonCode:
+      type: string
+      description: |
+        What each stage-1 code means and what triggers it. All checks run
+        against the request and two pieces of reference data, the eligibility
+        reference (`GET /eligibility-reference`) and, on test environments,
+        the supplier's allow-list of test patients, so every
+        rejection is predictable from this document.
+        * `MALFORMED_BUNDLE` — body is not JSON, or does not match the strict
+          profile: not a `collection` Bundle with exactly one Patient and one
+          Task, an unknown or duplicate element anywhere (including standard
+          FHIR fields such as `entry.fullUrl`, `id`, `meta`), a missing
+          `Task.input` `intervention` or `registration_route`, or a
+          datetime without an explicit offset. `diagnostics` and `expression`
+          name the element.
+        * `INVALID_NHS_NUMBER` — not 10 digits, or the mod-11 check digit fails.
+        * `NHS_NUMBER_OUT_OF_TEST_RANGE` — non-production environments accept
+          only synthetic numbers: the 999 range (`999xxxxxxx`), or a test
+          patient listed for your credentials. Anything else is rejected
+          before anything is written.
+        * `IMPLAUSIBLE_DOB` — `Patient.birthDate` is in the future, or the
+          age at receipt is over 120.
+        * `FUTURE_RECORD_TIMESTAMP` — `Task.lastModified` is more than 5
+          minutes ahead of server time (UTC, NTP-synced). It orders the
+          record's history, so it cannot be allowed to run ahead.
+        * `OUT_OF_SCOPE_COMMISSIONER` — `(Task.requester ODS code, the
+          intervention's product)` is not an active pair in
+          `GET /eligibility-reference` at `Task.lastModified`.
+        * `ROUTE_CONSISTENCY` — `registration_route` `HealthStore` requires
+          `Task.basedOn` (the registration id); `Self-Referral` requires it absent.
+        * `INVALID_CORRECTION` — `Task.input` `correction=true` and
+          `corrects_submission_id` must appear together.
+        * `BATCH_TOO_LARGE` — batch endpoint only, HTTP 413: over 1,000
+          records or 4 MB in one POST.
+        * `PRODUCT_NOT_PERMITTED` — the `intervention` coding names a product
+          that is not one your credentials may report for, or none at all.
+          Credentials are issued per supplier, and a supplier reports for its
+          own products. Checked first and returned alone.
+        * `MALFORMED_EVENT`, `FUTURE_EVENT_TIMESTAMP` — the orchestration
+          event equivalents.
+      enum:
+        - MALFORMED_BUNDLE
+        - MALFORMED_EVENT
+        - INVALID_NHS_NUMBER
+        - NHS_NUMBER_OUT_OF_TEST_RANGE
+        - IMPLAUSIBLE_DOB
+        - OUT_OF_SCOPE_COMMISSIONER
+        - ROUTE_CONSISTENCY
+        - FUTURE_RECORD_TIMESTAMP
+        - FUTURE_EVENT_TIMESTAMP
+        - INVALID_CORRECTION
+        - BATCH_TOO_LARGE
+        - PRODUCT_NOT_PERMITTED
+    RequestIssueCode:
+      type: string
+      description: |
+        Refusals of the call itself, in the same `OperationOutcome` shape,
+        named as the Registration API names its own.
+        * `MISSING_HEADER` — no `X-Request-ID`.
+        * `INVALID_HEADER` — `X-Request-ID` is not a UUID.
+        * `INVALID_REQUEST` — the gateway refused the request before it
+          reached the service.
+        * `NO_ACCESS` — these credentials may not use this route.
+        * `REFERENCE_NOT_FOUND` — no such submission, batch or route.
+        * `NOT_IMPLEMENTED` — the route is off in this environment.
+        * `SYSTEM_UNAVAILABLE` — a failure of ours; safe to retry.
+        * `TOKEN_INVALID` — no bearer token, or one that cannot be verified.
+        * `TOKEN_EXPIRED` — the bearer token has expired.
+        * `TOO_MANY_REQUESTS` — rate limit reached; wait and retry.
+      enum:
+        - MISSING_HEADER
+        - INVALID_HEADER
+        - INVALID_REQUEST
+        - NO_ACCESS
+        - REFERENCE_NOT_FOUND
+        - NOT_IMPLEMENTED
+        - SYSTEM_UNAVAILABLE
+        - TOKEN_INVALID
+        - TOKEN_EXPIRED
+        - TOO_MANY_REQUESTS
+    Stage2Status:
+      type: string
+      description: |
+        The exact status of a submission, in `Task.statusReason.coding` under
+        `https://fhir.dtx.national.nhs.uk/CodeSystem/usage-report-status`.
+        * `received` — stored, not yet judged; usually seconds
+        * `accepted` — merged into the record's current state
+        * `rejected` — recorded in history with reasons; never changed state
+        * `duplicate` — identical content replay; state unchanged
+        * `pending_merge` — self-referral record awaiting pseudonymisation (typically 24–72 h); merges automatically, or is rejected `PSEUDONYMISATION_FAILED` if no key returns within the 7-day identifier ceiling
+        * `parked` — registration id not yet known; retried for 48 h, then rejected `UNKNOWN_REQUEST_ID`
+        * `superseded` — replaced by an accepted correction (permanent history)
+      enum:
+        - received
+        - accepted
+        - rejected
+        - duplicate
+        - pending_merge
+        - parked
+        - superseded
+    Stage2ReasonCode:
+      type: string
+      enum:
+        - UNKNOWN_REQUEST_ID
+        - FROZEN_RECORD
+        - IMMUTABLE_FIELD_CONFLICT
+        - LATEST_ACTIVITY_REGRESSION
+        - ORDERING_VIOLATION
+        - COMPLETION_NOT_APPLICABLE
+        - DUPLICATE_SUBMISSION
+        - COMMISSIONER_MISMATCH
+        - INCOMPLETE_FIRST_SUBMISSION
+        - CORRECTION_TARGET_NOT_FOUND
+        - PSEUDONYMISATION_FAILED
+    SubmissionTask:
+      type: object
+      description: "The Task you sent, as we hold it, with what we added: `id` and an `identifier` under `https://fhir.dtx.national.nhs.uk/Id/usage-report-submission` (our submission id), `status` (FHIR's reading: `received`, `on-hold`, `accepted`, `rejected`, `completed`), `statusReason` (the exact status, under `.../CodeSystem/usage-report-status`, and the first reason's text), `authoredOn` (receipt time), and, where there are reasons, a contained `OperationOutcome` with id `outcome` referenced from `Task.output`. The Patient is not returned."
+      required:
+        - resourceType
+        - id
+        - identifier
+        - status
+        - statusReason
+        - intent
+        - authoredOn
+        - lastModified
+        - requester
+        - businessStatus
+        - input
+        - output
+      properties:
+        resourceType:
+          type: string
+          enum:
+            - Task
+        id:
+          type: string
+          format: uuid
+        identifier:
+          type: array
+          items:
+            type: object
+            properties:
+              system:
+                type: string
+                enum:
+                  - https://fhir.dtx.national.nhs.uk/Id/usage-report-submission
+              value:
+                type: string
+                format: uuid
+        status:
+          type: string
+          enum:
+            - received
+            - on-hold
+            - accepted
+            - rejected
+            - completed
+        statusReason:
+          type: object
+          properties:
+            coding:
+              type: array
+              items:
+                type: object
+                properties:
+                  system:
+                    type: string
+                    enum:
+                      - https://fhir.dtx.national.nhs.uk/CodeSystem/usage-report-status
+                  code:
+                    $ref: "#/components/schemas/Stage2Status"
+            text:
+              type: string
+        intent:
+          type: string
+          enum:
+            - order
+        authoredOn:
+          type: string
+          format: date-time
+          description: When we received it.
+        lastModified:
+          type: string
+          format: date-time
+          description: Your `record_timestamp`.
+        basedOn:
+          type: array
+          items:
+            type: object
+        requester:
+          type: object
+        businessStatus:
+          type: object
+        input:
+          type: array
+          items:
+            type: object
+          description: As you sent them, the `intervention` coding first.
+        output:
+          type: array
+          items:
+            type: object
+          description: As you sent them, plus `outcome` referencing the contained OperationOutcome when there are reasons.
+        contained:
+          type: array
+          items:
+            $ref: "#/components/schemas/OperationOutcome"
+      example:
+        resourceType: Task
+        id: 7f3c9a1e-5b2d-4c8e-9f10-6a7b8c9d0e1f
+        identifier:
+          - system: https://fhir.dtx.national.nhs.uk/Id/usage-report-submission
+            value: 7f3c9a1e-5b2d-4c8e-9f10-6a7b8c9d0e1f
+        status: rejected
+        statusReason:
+          coding:
+            - system: https://fhir.dtx.national.nhs.uk/CodeSystem/usage-report-status
+              code: rejected
+          text: a newer Clinician DTx request has opened a new record for this patient and product
+        intent: order
+        authoredOn: 2026-08-20T10:16:02.114Z
+        lastModified: 2026-08-20T10:15:00Z
+        basedOn:
+          - identifier:
+              system: https://fhir.dtx.national.nhs.uk/Id/registration
+              value: 0b93b9a2-6ac2-4d31-a3d0-7c3ef1a29a3f
+        requester:
+          identifier:
+            system: https://fhir.nhs.uk/Id/ods-organization-code
+            value: QHS1
+        businessStatus:
+          text: Open
+        input:
+          - type:
+              text: intervention
+            valueCodeableConcept:
+              coding:
+                - system: https://fhir.dtx.national.nhs.uk/CodeSystem/intervention-example
+                  code: example
+                  version: 2.3.1
+          - type:
+              text: registration_route
+            valueString: HealthStore
+          - type:
+              text: completion_applicable
+            valueBoolean: false
+        output:
+          - type:
+              text: activation_datetime
+            valueDateTime: 2026-08-20T09:58:00Z
+          - type:
+              text: outcome
+            valueReference:
+              reference: "#outcome"
+        contained:
+          - resourceType: OperationOutcome
+            id: outcome
+            issue:
+              - severity: error
+                code: business-rule
+                details:
+                  coding:
+                    - system: https://fhir.dtx.national.nhs.uk/CodeSystem/usage-report-issue
+                      code: FROZEN_RECORD
+                  text: open registration 8e2b5d1a-3c4f-4a6b-9d0e-1f2a3b4c5d6e
+                diagnostics: a newer Clinician DTx request has opened a new record for this patient and product
+    BatchResponseBundle:
+      type: object
+      description: One entry per line of the batch, in line order. The Bundle's `id` is the batch id.
+      required:
+        - resourceType
+        - id
+        - identifier
+        - type
+        - entry
+      properties:
+        resourceType:
+          type: string
+          enum:
+            - Bundle
+        id:
+          type: string
+          format: uuid
+        identifier:
+          type: object
+          properties:
+            system:
+              type: string
+              enum:
+                - https://fhir.dtx.national.nhs.uk/Id/usage-report-batch
+            value:
+              type: string
+              format: uuid
+        type:
+          type: string
+          enum:
+            - batch-response
+        entry:
+          type: array
+          items:
+            type: object
+            required:
+              - response
+            properties:
+              response:
+                type: object
+                required:
+                  - status
+                properties:
+                  status:
+                    type: string
+                    enum:
+                      - 202 Accepted
+                      - 400 Bad Request
+                  outcome:
+                    $ref: "#/components/schemas/OperationOutcome"
+              resource:
+                $ref: "#/components/schemas/SubmissionTask"
+      example:
+        resourceType: Bundle
+        id: 2a4c6e8f-1b3d-4f5a-9c8e-7d6b5a4c3e2f
+        identifier:
+          system: https://fhir.dtx.national.nhs.uk/Id/usage-report-batch
+          value: 2a4c6e8f-1b3d-4f5a-9c8e-7d6b5a4c3e2f
+        type: batch-response
+        entry:
+          - response:
+              status: 202 Accepted
+            resource:
+              resourceType: Task
+              id: 7f3c9a1e-5b2d-4c8e-9f10-6a7b8c9d0e1f
+              identifier:
+                - system: https://fhir.dtx.national.nhs.uk/Id/usage-report-submission
+                  value: 7f3c9a1e-5b2d-4c8e-9f10-6a7b8c9d0e1f
+              status: received
+              statusReason:
+                coding:
+                  - system: https://fhir.dtx.national.nhs.uk/CodeSystem/usage-report-status
+                    code: received
+              intent: order
+              authoredOn: 2026-08-20T10:16:02.114Z
+              lastModified: 2026-08-20T10:15:00Z
+              requester:
+                identifier:
+                  system: https://fhir.nhs.uk/Id/ods-organization-code
+                  value: QHS1
+              businessStatus:
+                text: Open
+              input:
+                - type:
+                    text: intervention
+                  valueCodeableConcept:
+                    coding:
+                      - system: https://fhir.dtx.national.nhs.uk/CodeSystem/intervention-example
+                        code: example
+                        version: 2.3.1
+                - type:
+                    text: registration_route
+                  valueString: HealthStore
+                - type:
+                    text: completion_applicable
+                  valueBoolean: true
+              output:
+                - type:
+                    text: activation_datetime
+                  valueDateTime: 2026-08-19T09:30:00Z
+          - response:
+              status: 400 Bad Request
+              outcome:
+                resourceType: OperationOutcome
+                issue:
+                  - severity: error
+                    code: business-rule
+                    details:
+                      coding:
+                        - system: https://fhir.dtx.national.nhs.uk/CodeSystem/usage-report-issue
+                          code: OUT_OF_SCOPE_COMMISSIONER
+                    diagnostics: (commissioning_org_ods_code, product_id) is not an active pair in the eligibility reference at record_timestamp
+                    expression:
+                      - entry.Task.requester
+    BatchStatusBundle:
+      type: object
+      description: The batch's stored submissions, one Task each, in receipt order.
+      required:
+        - resourceType
+        - id
+        - identifier
+        - type
+        - total
+        - entry
+      properties:
+        resourceType:
+          type: string
+          enum:
+            - Bundle
+        id:
+          type: string
+          format: uuid
+        identifier:
+          type: object
+          properties:
+            system:
+              type: string
+              enum:
+                - https://fhir.dtx.national.nhs.uk/Id/usage-report-batch
+            value:
+              type: string
+              format: uuid
+        type:
+          type: string
+          enum:
+            - collection
+        total:
+          type: integer
+        entry:
+          type: array
+          items:
+            type: object
+            required:
+              - resource
+            properties:
+              resource:
+                $ref: "#/components/schemas/SubmissionTask"
+    EligibilityReference:
+      type: object
+      required:
+        - version
+        - products
+        - pairs
+      properties:
+        version:
+          type: string
+          example: 2026-08-19
+        products:
+          type: array
+          description: Your products, and how each is named on the wire.
+          items:
+            type: object
+            required:
+              - product_id
+              - supplier_id
+              - supplier
+              - intervention_code
+            properties:
+              product_id:
+                type: string
+                example: hs-example
+                description: Our key for the product; what `pairs` refer to.
+              supplier_id:
+                type: string
+                example: example-supplier
+              supplier:
+                type: string
+                example: Example product (Example supplier)
+              intervention_code:
+                type: string
+                example: example
+                description: Your code for this product, from your catalogue; sent under any `https://fhir.dtx.national.nhs.uk/CodeSystem/intervention-<name>` code system.
+        pairs:
+          type: array
+          description: The contracting organisations of your products, with validity dates.
+          items:
+            type: object
+            required:
+              - commissioner_ods_code
+              - product_id
+              - valid_from
+              - valid_to
+            properties:
+              commissioner_ods_code:
+                type: string
+                example: QHS1
+              product_id:
+                type: string
+                example: hs-example
+              valid_from:
+                type: string
+                format: date
+              valid_to:
+                type: string
+                format: date
+                nullable: true
+                description: Inclusive; null = open-ended.
+    UsageReportBundle:
+      type: object
+      description: "FHIR R4 `Bundle` (type `collection`) containing exactly one `Patient` and one `Task`, in either order. (The `oneOf` below describes each entry's possible types; the one-of-each rule itself is checked at submission and violations return `MALFORMED_BUNDLE`.) The profile is strict: any element not listed here is rejected, so a submission that validates against your FHIR tooling can still be rejected if it carries extra fields."
+      additionalProperties: false
+      required:
+        - resourceType
+        - type
+        - entry
+      example:
+        resourceType: Bundle
+        type: collection
+        entry:
+          - resource:
+              resourceType: Patient
+              identifier:
+                - system: https://fhir.nhs.uk/Id/nhs-number
+                  value: "9990000018"
+              birthDate: 1958-03-14
+          - resource:
+              resourceType: Task
+              status: in-progress
+              intent: order
+              basedOn:
+                - identifier:
+                    system: https://fhir.dtx.national.nhs.uk/Id/registration
+                    value: 0b93b9a2-6ac2-4d31-a3d0-7c3ef1a29a3f
+              requester:
+                identifier:
+                  system: https://fhir.nhs.uk/Id/ods-organization-code
+                  value: QHS1
+              businessStatus:
+                text: Open
+              lastModified: 2026-08-20T10:15:00Z
+              input:
+                - type:
+                    text: intervention
+                  valueCodeableConcept:
+                    coding:
+                      - system: https://fhir.dtx.national.nhs.uk/CodeSystem/intervention-example
+                        code: example
+                        version: 2.3.1
+                - type:
+                    text: registration_route
+                  valueString: HealthStore
+                - type:
+                    text: completion_applicable
+                  valueBoolean: false
+              output:
+                - type:
+                    text: activation_datetime
+                  valueDateTime: 2026-08-20T09:58:00Z
+      properties:
+        resourceType:
+          type: string
+          enum:
+            - Bundle
+        type:
+          type: string
+          enum:
+            - collection
+        entry:
+          type: array
+          minItems: 2
+          maxItems: 2
+          items:
+            type: object
+            additionalProperties: false
+            required:
+              - resource
+            properties:
+              resource:
+                oneOf:
+                  - $ref: "#/components/schemas/PatientResource"
+                  - $ref: "#/components/schemas/TaskResource"
+    PatientResource:
+      type: object
+      additionalProperties: false
+      required:
+        - resourceType
+        - identifier
+        - birthDate
+      properties:
+        resourceType:
+          type: string
+          enum:
+            - Patient
+        identifier:
+          type: array
+          minItems: 1
+          maxItems: 1
+          items:
+            type: object
+            additionalProperties: false
+            required:
+              - system
+              - value
+            properties:
+              system:
+                type: string
+                enum:
+                  - https://fhir.nhs.uk/Id/nhs-number
+              value:
+                type: string
+                pattern: ^\d{10}$
+                description: Mod-11 check digit enforced; non-prod additionally requires the 999 test range or a listed test patient.
+        birthDate:
+          type: string
+          format: date
+          description: Not in the future; age 120 or under. Held transiently for pseudonymisation only — see the API description.
+    TaskResource:
+      type: object
+      additionalProperties: false
+      required:
+        - resourceType
+        - requester
+        - businessStatus
+        - lastModified
+        - input
+      properties:
+        resourceType:
+          type: string
+          enum:
+            - Task
+        status:
+          type: string
+          enum:
+            - requested
+            - in-progress
+            - completed
+            - cancelled
+          description: FHIR-mandatory; tolerated, not used by the MDS mapping.
+        intent:
+          type: string
+          enum:
+            - order
+            - plan
+            - proposal
+        basedOn:
+          type: array
+          minItems: 1
+          maxItems: 1
+          description: MDS `healthstore_request_id` — the registration id HealthStore issued for the clinician's request, the same identifier the Registration API uses. Include it exactly when registration_route is 'HealthStore'; omit it entirely for 'Self-Referral' records.
+          items:
+            type: object
+            additionalProperties: false
+            required:
+              - identifier
+            properties:
+              identifier:
+                type: object
+                additionalProperties: false
+                required:
+                  - system
+                  - value
+                properties:
+                  system:
+                    type: string
+                    enum:
+                      - https://fhir.dtx.national.nhs.uk/Id/registration
+                  value:
+                    type: string
+        requester:
+          type: object
+          additionalProperties: false
+          required:
+            - identifier
+          properties:
+            identifier:
+              type: object
+              additionalProperties: false
+              required:
+                - system
+                - value
+              properties:
+                system:
+                  type: string
+                  enum:
+                    - https://fhir.nhs.uk/Id/ods-organization-code
+                value:
+                  type: string
+                  example: QHS1
+                  description: "MDS `commissioning_org_ods_code` — the contracting organisation: who bought the product and is billed, and who the figures are reported against. Required on every submission. For Self-Referral records this states which organisation's HealthStore agreement the recruitment channel was deployed under — it is the record's legal basis for flowing to HSRS, so take care to map channels to the right organisation."
+        businessStatus:
+          type: object
+          additionalProperties: false
+          required:
+            - text
+          properties:
+            text:
+              type: string
+              enum:
+                - Open
+                - Paused
+                - Closed
+              description: MDS `user_account_status`.
+        lastModified:
+          type: string
+          format: date-time
+          description: MDS `record_timestamp` — ISO datetime with explicit offset; ≤ 5 min ahead of server time.
+        input:
+          type: array
+          description: "`intervention` and `registration_route` are required on every submission; `completion_applicable` on the first (full) submission. The correction pair must appear together."
+          items:
+            oneOf:
+              - $ref: "#/components/schemas/InputIntervention"
+              - $ref: "#/components/schemas/InputRegistrationRoute"
+              - $ref: "#/components/schemas/InputCompletionApplicable"
+              - $ref: "#/components/schemas/InputCorrection"
+              - $ref: "#/components/schemas/InputCorrectsSubmissionId"
+        output:
+          type: array
+          description: Datetime assertions; any subset on deltas. Immutable once set (corrections excepted).
+          items:
+            type: object
+            additionalProperties: false
+            required:
+              - type
+              - valueDateTime
+            properties:
+              type:
+                type: object
+                additionalProperties: false
+                required:
+                  - text
+                properties:
+                  text:
+                    type: string
+                    enum:
+                      - activation_datetime
+                      - first_therapeutic_activity_datetime
+                      - latest_therapeutic_activity_datetime
+                      - completion_datetime
+              valueDateTime:
+                type: string
+                format: date-time
+    InputIntervention:
+      type: object
+      description: "MDS `product_id` and `product_version`: the product as the Registration API names it. One coding whose system is an intervention code system (`https://fhir.dtx.national.nhs.uk/CodeSystem/intervention-<name>`, any name; only the shape is checked), with your code for the product and the version the patient used. The code is read as yours, whatever the name; `GET /eligibility-reference` lists your codes."
+      additionalProperties: false
+      required:
+        - type
+        - valueCodeableConcept
+      properties:
+        type:
+          type: object
+          additionalProperties: false
+          required:
+            - text
+          properties:
+            text:
+              type: string
+              enum:
+                - intervention
+        valueCodeableConcept:
+          type: object
+          additionalProperties: false
+          required:
+            - coding
+          properties:
+            coding:
+              type: array
+              minItems: 1
+              maxItems: 1
+              items:
+                type: object
+                additionalProperties: false
+                required:
+                  - system
+                  - code
+                  - version
+                properties:
+                  system:
+                    type: string
+                    pattern: ^https://fhir\.dtx\.national\.nhs\.uk/CodeSystem/intervention-[a-z0-9-]+$
+                  code:
+                    type: string
+                  version:
+                    type: string
+                    description: MDS `product_version`.
+    InputRegistrationRoute:
+      type: object
+      additionalProperties: false
+      required:
+        - type
+        - valueString
+      properties:
+        type:
+          type: object
+          additionalProperties: false
+          required:
+            - text
+          properties:
+            text:
+              type: string
+              enum:
+                - registration_route
+        valueString:
+          type: string
+          enum:
+            - HealthStore
+            - Self-Referral
+    InputCompletionApplicable:
+      type: object
+      additionalProperties: false
+      required:
+        - type
+        - valueBoolean
+      properties:
+        type:
+          type: object
+          additionalProperties: false
+          required:
+            - text
+          properties:
+            text:
+              type: string
+              enum:
+                - completion_applicable
+        valueBoolean:
+          type: boolean
+    InputCorrection:
+      type: object
+      additionalProperties: false
+      required:
+        - type
+        - valueBoolean
+      properties:
+        type:
+          type: object
+          additionalProperties: false
+          required:
+            - text
+          properties:
+            text:
+              type: string
+              enum:
+                - correction
+        valueBoolean:
+          type: boolean
+    InputCorrectsSubmissionId:
+      type: object
+      additionalProperties: false
+      required:
+        - type
+        - valueString
+      properties:
+        type:
+          type: object
+          additionalProperties: false
+          required:
+            - text
+          properties:
+            text:
+              type: string
+              enum:
+                - corrects_submission_id
+        valueString:
+          type: string
+          format: uuid

@@ -31,7 +31,7 @@ jobs:
 
   # Validates the FHIR resources in the spec's examples against base R4,
   # the UK Core profiles and this repository's own StructureDefinitions
-  # (specification/fhir/) with the HL7 validator. Fails on errors only; the
+  # (specification/registrations-api/fhir/) with the HL7 validator. Fails on errors only; the
   # warnings about our own CodeSystem URIs not resolving are expected.
   fhir-validate:
     runs-on: ubuntu-latest
@@ -51,4 +51,4 @@ jobs:
       - name: Download the HL7 FHIR validator
         run: curl -sSL -o validator_cli.jar https://github.com/hapifhir/org.hl7.fhir.core/releases/latest/download/validator_cli.jar
       - name: Validate against R4, UK Core and this repository's StructureDefinitions
-        run: java -jar validator_cli.jar build/fhir-examples/*.json -version 4.0.1 -ig fhir.r4.ukcore.stu2#2.1.0 -ig specification/fhir -tx n/a
+        run: java -jar validator_cli.jar build/fhir-examples/*.json -version 4.0.1 -ig fhir.r4.ukcore.stu2#2.1.0 -ig specification/registrations-api/fhir -tx n/a
