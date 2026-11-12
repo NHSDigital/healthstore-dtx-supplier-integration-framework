@@ -20,6 +20,8 @@ The framework spec describes the target service. This is an interim integration 
 - Use the API base URL above in place of the spec's `servers` URL. There is no `/registration/v1` prefix yet: the endpoint is `$API_BASE_URL/registrations`. A request to the wrong path gets a `403`.
 - Use the token URL above. The spec's `tokenUrl` is not yet authoritative.
 - Tasks for the synthetic registrations are checked but not recorded (see step 4).
+- `X-Synthetic-Registrations: false` and `POST /registrations/reset` give you real registrations (see step 5). Neither is in the spec, and both are temporary.
+- We will make real registrations the default once suppliers have moved to them, so tell us when you have. After that, send `X-Synthetic-Registrations: true` if you still want synthetic ones.
 - ID tokens are not checked yet (see step 2), so you will not get `TOKEN_EXPIRED`, `WRONG_AUDIENCE` or `PROOFING_BELOW_P9`.
 
 ## 1. Get an access token
@@ -65,7 +67,7 @@ Your client is set up with two test interventions, a first and a second. Their c
 
 If you sign in to the NHS login sandpit as one of these users, you can send that real ID token instead and get the same result.
 
-The registrations are **synthetic**: fixed for each test user, and the same every time. Any other valid NHS number returns an empty Bundle.
+The registrations are **synthetic**: fixed for each test user, and the same every time. Any other valid NHS number returns an empty Bundle. Real registrations (step 5) don't match this table.
 
 To make a token, replace Mona's NHS number with the one you want:
 
@@ -103,14 +105,33 @@ curl --silent --include \
 
 Expected result: HTTP 200 with no body.
 
-> ⚠️ We check the Task and return errors as the spec describes, but we don't record it yet. The registration will still come back from step 3.
+> ⚠️ For a synthetic registration, we check the Task and return errors as the spec describes, but we don't record it. The registration will still come back from step 3. Real registrations are recorded (step 5).
+
+## 5. Use real registrations
+
+For real registrations, we actually enrol the step 2 test users onto the same interventions. If you acknowledge one, we record it and it stops coming back from step 3.
+
+Start with a reset, with a new `X-Request-ID`:
+
+```sh
+curl --silent --include --request POST \
+  --header 'Authorization: Bearer <ACCESS_TOKEN>' \
+  --header 'X-Request-ID: 5c7a1e3b-9d2f-4a6e-8b1c-2e3f4a5b6c7d' \
+  "$API_BASE_URL/registrations/reset"
+```
+
+Expected result: HTTP 200 with no body. We delete every real registration your client holds, acknowledged or not, and enrol the test users again with new registration IDs. Reset again whenever you want a fresh set. It affects everyone who shares your client ID.
+
+Then repeat steps 3 and 4, adding `--header 'X-Synthetic-Registrations: false'` to step 3.
+
+> ⚠️ **Real registrations do not match the table in step 2.** The patient's given name, email and phone come from our mock of PDS, not from the synthetic data. Any of them can be missing or different, and your product must cope with that. If you need a fixed result, use synthetic registrations.
 
 ## Notes
 
 - An empty Bundle is a normal result, not an error.
 - The intervention in `ServiceRequest.code` is a placeholder for now: version `placeholder`, display `<PRODUCT> INTERVENTION NOT YET IMPLEMENTED`. We will replace it with your real intervention codes and tell you when we do. Do not map or store this value.
 - This is a good time to test getting demographics from NHS login `/userinfo` if you are not doing so already. Building logic now that uses `/userinfo` as the primary source and the contained patient as a secondary fallback means no code changes will be needed when NHS login grants further scopes. We plan to cut the contained patient down to gender only. Until then it also carries name, email and phone.
-- In the target service, `GET /registrations` returns a registration until it is acknowledged. Here, synthetic registrations are always returned (see step 4).
+- In the target service, `GET /registrations` returns a registration until it is acknowledged. Here, synthetic registrations are always returned (see step 4). Real ones work as in the target service.
 
 ## Errors
 
@@ -126,6 +147,7 @@ Errors are FHIR `OperationOutcome`s. Each issue has an error code in `details.co
 | 401 | `TOKEN_INVALID` | The ID token is not a valid JWT, or its NHS number is not valid |
 | 401 | `NHS_NUMBER_MISSING` | The ID token has no `nhs_number` claim |
 | 429 | `TOO_MANY_REQUESTS` | Wait for the number of seconds in `Retry-After`, then retry |
+| 500 | none | Reset only: our test data needs fixing. Nothing was reset. Contact us, as retrying won't help |
 | 503 | `SYSTEM_UNAVAILABLE` | A problem on our side. It is safe to retry |
 
 ## Or run the script
@@ -134,6 +156,12 @@ Errors are FHIR `OperationOutcome`s. Each issue has an error code in `details.co
 
 ```sh
 sh try-registrations-api.sh '<NHS_NUMBER>'
+```
+
+Add `--real` to reset and then use real registrations (step 5):
+
+```sh
+sh try-registrations-api.sh --real '<NHS_NUMBER>'
 ```
 
 ## If something goes wrong

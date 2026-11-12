@@ -1,11 +1,18 @@
 #!/bin/sh
 # Requires: sh, curl, base64, uuidgen
-# Usage: ./try-registrations-api.sh <nhs-number>
+# Usage: ./try-registrations-api.sh [--real] <nhs-number>
+# --real resets your real registrations, then uses them instead of the synthetic ones.
 # Reads CLIENT_ID, CLIENT_SECRET, TOKEN_URL and API_BASE_URL from the environment.
 set -eu
 
+SYNTHETIC=true
+if [ "${1:-}" = "--real" ]; then
+  SYNTHETIC=false
+  shift
+fi
+
 if [ $# -ne 1 ]; then
-  echo "Usage: $0 <nhs-number>" >&2
+  echo "Usage: $0 [--real] <nhs-number>" >&2
   exit 2
 fi
 
@@ -63,11 +70,25 @@ report_response() {
   esac
 }
 
+if [ "$SYNTHETIC" = false ]; then
+  RESET_REQUEST_ID=$(uuidgen)
+  echo "Resetting your real registrations"
+  curl --silent --request POST \
+    --dump-header "$response_headers" \
+    --write-out '\n' \
+    --header "Authorization: Bearer $access_token" \
+    --header "X-Request-ID: $RESET_REQUEST_ID" \
+    "$API_URL/reset"
+  report_response "$RESET_REQUEST_ID"
+  echo
+fi
+
 registrations=$(curl --silent \
   --dump-header "$response_headers" \
   --header "Authorization: Bearer $access_token" \
   --header "X-Request-ID: $REQUEST_ID" \
   --header "NHSD-ID-Token: $id_token" \
+  --header "X-Synthetic-Registrations: $SYNTHETIC" \
   "$API_URL")
 echo "$registrations"
 report_response "$REQUEST_ID"
@@ -80,7 +101,7 @@ if [ -z "$registration_id" ]; then
   exit 0
 fi
 
-# Checked but not recorded yet, so this registration is still returned next time.
+# A synthetic registration is checked but not recorded, so it is still returned next time.
 TASK_REQUEST_ID=$(uuidgen)
 echo
 echo "Acknowledging $registration_id as registered"
