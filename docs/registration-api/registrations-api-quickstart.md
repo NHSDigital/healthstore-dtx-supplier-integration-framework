@@ -158,7 +158,7 @@ Errors are FHIR `OperationOutcome`s. Each issue has an error code in `details.co
 sh try-registrations-api.sh '<NHS_NUMBER>'
 ```
 
-Add `--real` to reset and then use real registrations (step 5):
+Add `--real` to reset and then use real registrations (step 5). After acknowledging, it gets the registrations again to check the acknowledged one has gone:
 
 ```sh
 sh try-registrations-api.sh --real '<NHS_NUMBER>'

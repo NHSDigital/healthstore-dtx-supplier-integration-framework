@@ -83,13 +83,18 @@ if [ "$SYNTHETIC" = false ]; then
   echo
 fi
 
-registrations=$(curl --silent \
-  --dump-header "$response_headers" \
-  --header "Authorization: Bearer $access_token" \
-  --header "X-Request-ID: $REQUEST_ID" \
-  --header "NHSD-ID-Token: $id_token" \
-  --header "X-Synthetic-Registrations: $SYNTHETIC" \
-  "$API_URL")
+get_registrations() {
+  request_id=$1
+  curl --silent \
+    --dump-header "$response_headers" \
+    --header "Authorization: Bearer $access_token" \
+    --header "X-Request-ID: $request_id" \
+    --header "NHSD-ID-Token: $id_token" \
+    --header "X-Synthetic-Registrations: $SYNTHETIC" \
+    "$API_URL"
+}
+
+registrations=$(get_registrations "$REQUEST_ID")
 echo "$registrations"
 report_response "$REQUEST_ID"
 
@@ -114,3 +119,16 @@ curl --silent \
   --data '{"resourceType":"Task","status":"accepted","intent":"order","businessStatus":{"coding":[{"system":"https://fhir.dtx.national.nhs.uk/CodeSystem/registration-business-status","code":"registered"}]}}' \
   "$API_URL/$registration_id/tasks"
 report_response "$TASK_REQUEST_ID"
+
+if [ "$SYNTHETIC" = false ]; then
+  CHECK_REQUEST_ID=$(uuidgen)
+  echo
+  echo "Checking $registration_id is no longer returned"
+  registrations=$(get_registrations "$CHECK_REQUEST_ID")
+  echo "$registrations"
+  report_response "$CHECK_REQUEST_ID"
+  if printf '%s' "$registrations" | grep -q "\"$registration_id\""; then
+    echo "$registration_id was still returned after acknowledging it" >&2
+    exit 1
+  fi
+fi
