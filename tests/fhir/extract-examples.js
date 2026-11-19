@@ -9,7 +9,7 @@ const path = require('path');
 const yaml = require('js-yaml');
 
 const ROOT = path.resolve(__dirname, '../..');
-const ENDPOINTS = path.join(ROOT, 'specification/components/endpoints');
+const ENDPOINTS = path.join(ROOT, 'specification/registrations-api/components/endpoints');
 const outDir = process.argv[2] || path.join(ROOT, 'build/fhir-examples');
 fs.mkdirSync(outDir, { recursive: true });
 

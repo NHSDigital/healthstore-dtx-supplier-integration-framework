@@ -4,7 +4,7 @@
   "version": "0.0.0",
   "description": "Contract repository for DTx-supplier integration with the Health Store: specs, schemas, examples and tests.",
   "scripts": {
-    "lint:spec": "spectral lint specification/healthstore-api.yaml",
+    "lint:spec": "spectral lint specification/registrations-api/healthstore-api.yaml specification/usage-api/usage-api.yaml",
     "test:integration": "jest --config jest.config.js --runInBand"
   },
   "devDependencies": {
