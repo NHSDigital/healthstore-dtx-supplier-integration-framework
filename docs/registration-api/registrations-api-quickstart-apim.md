@@ -37,6 +37,8 @@ curl --silent --include \
 
 Expected result: HTTP 200 and a FHIR `searchset` Bundle of ServiceRequests, one for each registration you haven't acknowledged yet. An empty Bundle means there are none. The registration ID is the ServiceRequest `identifier` with system `https://fhir.dtx.national.nhs.uk/Id/registration`.
 
+Use a new `X-Request-ID` for each request, and the same one when you retry it.
+
 ## 4. Acknowledge a registration
 
 ```sh
@@ -49,6 +51,14 @@ curl --silent --include \
 ```
 
 Expected result: HTTP 200 with no body. The registration no longer comes back from step 3.
+
+If the patient already had an account with you, add a `statusReason` with the code `already-registered` to the same Task:
+
+```json
+"statusReason": {
+  "coding": [{ "system": "https://fhir.dtx.national.nhs.uk/CodeSystem/acknowledgement-reason", "code": "already-registered" }]
+}
+```
 
 To reject a registration instead, send this Task. The reason code is `licence-exhausted`, `intervention-not-configured`, or `other` with a `note` saying why, for example `"note": [{ "text": "<why>" }]`.
 
@@ -65,24 +75,6 @@ To reject a registration instead, send this Task. The reason code is `licence-ex
   }
 }
 ```
-
-## Errors
-
-A 401 with an empty body comes from the platform: your application isn't connected to the API, or the access token is missing or has expired.
-
-Our errors are FHIR `OperationOutcome`s. The code is in `issue[0].details.coding[0].code`, and `issue[0].expression` names the header or element at fault.
-
-| HTTP | Code | Meaning |
-| --- | --- | --- |
-| 401 | `NO_ACCESS` | Your `productid` doesn't match a product we have set up |
-| 401 | `WRONG_AUDIENCE` | The ID token wasn't issued to the NHS login client you gave us, or we haven't set that client up yet |
-| 401 | `TOKEN_EXPIRED` | The ID token has expired. Sign the patient in again |
-| 401 | `TOKEN_INVALID` or `PROOFING_BELOW_P9` | The ID token isn't from NHS login integration, or isn't P9 |
-| 401 | `NHS_NUMBER_MISSING` | The ID token has no NHS number |
-| 400 | `MISSING_HEADER` or `INVALID_VALUE` | A required header is missing or wrong, or the registration ID isn't a UUID |
-| 400 | `INVALID_FHIR_STRUCTURE`, `MISSING_VALUE` or `INVALID_CODE` | The Task is malformed |
-| 404 | `REFERENCE_NOT_FOUND` | The registration ID is unknown, or doesn't belong to you or the signed-in patient |
-| 503 | `SYSTEM_UNAVAILABLE` | A temporary problem on our side. Retry with backoff |
 
 ## If something goes wrong
 
