@@ -1,8 +1,6 @@
 # Supplier Integration Test cases SIT-01 to SIT-19
 
-DRAFT, written by Ditmir for review by William Willis and the HealthStore engineers. Not on Confluence yet. Ticket: DTX-3683.
-
-These are the cases the exit criteria in the [Supplier Integration Test Plan](https://nhsd-confluence.digital.nhs.uk/spaces/DTX/pages/1561338739) name and never define:
+These are the cases the exit criteria in the [Supplier Integration Test Plan](https://nhsd-confluence.digital.nhs.uk/spaces/DTX/pages/1561338739):
 
 - Each supplier passes SIT-01 to SIT-09, with evidence.
 - Each supplier passes SIT-10 and SIT-12 to SIT-17 for at least one patient.
@@ -54,12 +52,4 @@ SIT-01 to SIT-09 are the Stage 2 pack (T-AUTH, T-GET, T-POST, T-SUP) grouped int
 - To replay SIT-11, the clinician enrols the patient again.
 - Once ID token checks are on, Stage 2 reruns need real NHS login sandpit tokens, not the test ones.
 
-## Open points to confirm before this goes on Confluence
 
-1. After a rejection, does HealthStore stop returning that registration, and what does the clinician see? SIT-16 and SIT-12 depend on it.
-2. SIT-15 assumes a closed registration is not returned again. Please confirm with the engineers.
-3. Which PDS `supplier-int` uses for Stage 3. The PDS sandbox holds none of the NHS login sandpit users, so Int has to look them up in our stub unless that changes.
-4. When ID token checks go on, and whether Stage 2 reruns use real tokens.
-5. Whether `supplier-int` is pinned for 23 November to 4 December. It deploys on every merge to `main`.
-6. Whether the test patients exist in NHS Notify with the same NHS numbers.
-7. For real registrations, Emilie and Lee come back with the contact details PDS holds, so T-GET-04 and T-GET-05 expectations differ.
